@@ -31,7 +31,7 @@ namespace ASECII {
 			base.Initialize();
 
 			// Create your console
-			var firstConsole = new EditorMain(width, height, SadConsole.Global.FontDefault.Master.GetFont(Font.FontSizes.Two));
+			var firstConsole = new EditorMain(width, height, SadConsole.Global.FontDefault.Master.GetFont(Font.FontSizes.One));
 
 
 			SadConsole.Global.CurrentScreen = firstConsole;
