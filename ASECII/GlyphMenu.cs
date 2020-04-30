@@ -11,6 +11,7 @@ namespace ASECII {
         SpriteModel spriteModel;
         bool prevLeft;
         bool prevRight;
+
         public GlyphMenu(int width, int height, Font font, SpriteModel spriteModel) : base(width, height, font) {
             this.spriteModel = spriteModel;
         }

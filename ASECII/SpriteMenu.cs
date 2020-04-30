@@ -412,46 +412,4 @@ namespace ASECII {
         }
 
     }
-    class CellButton : SadConsole.Console {
-        Func<bool> active;
-        bool isActive;
-        Action click;
-        bool prevLeft;
-        bool pressed;
-        public CellButton(Font font, Func<bool> active, Action click) : base(1, 1, font) {
-            this.active = active;
-            this.click = click;
-        }
-        public override void Update(TimeSpan timeElapsed) {
-            isActive = active();
-            base.Update(timeElapsed);
-        }
-        public override bool ProcessMouse(MouseConsoleState state) {
-            if(isActive && IsMouseOver) {
-                if(state.Mouse.LeftButtonDown) {
-                    if(!prevLeft) {
-                        pressed = true;
-                    }
-                } else if (pressed && !state.Mouse.LeftButtonDown) {
-                    pressed = false;
-                    click();
-                }
-
-            }
-            prevLeft = state.Mouse.LeftButtonDown;
-            return base.ProcessMouse(state);
-        }
-        public override void Draw(TimeSpan timeElapsed) {
-            if(pressed) {
-                Print(0, 0, "+", Color.White, Color.Black);
-            } else if(isActive) {
-                Print(0, 0, "+", Color.Black, IsMouseOver ? Color.Yellow : Color.White);
-            } else {
-                Print(0, 0, " ", Color.Transparent, Color.White);
-            }
-            
-
-            base.Draw(timeElapsed);
-        }
-    }
 }
