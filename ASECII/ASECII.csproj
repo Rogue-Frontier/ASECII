@@ -43,6 +43,10 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="TileMenu.cs" />
+    <Compile Include="PickerMenu.cs" />
+    <Compile Include="GlyphMenu.cs" />
+    <Compile Include="PaletteMenu.cs" />
     <Compile Include="SpriteMenu.cs" />
     <Compile Include="Helper.cs" />
     <Compile Include="Game.cs" />
