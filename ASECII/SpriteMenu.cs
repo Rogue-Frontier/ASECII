@@ -14,58 +14,121 @@ namespace ASECII {
             UseKeyboard = true;
             UseMouse = true;
             model = new SpriteModel(32, 32);
+            var tileModel = new TileModel();
             var paletteModel = new PaletteModel();
-            var colorPicker = new PickerModel(16, 16, model);
-            this.Children.Add(new SpriteMenu(32, 32, font, model) {
-                Position = new Point(16, 0),
+            var pickerModel = new PickerModel(16, 16, model);
+
+            pickerModel.UpdateColors();
+            pickerModel.UpdateBrushPoints(paletteModel);
+            pickerModel.UpdatePalettePoints(paletteModel);
+
+            CellButton tileButton = null;
+            tileButton = new CellButton(font, () => {
+                var c = model.brush.cell;
+                return !tileModel.tiles.Any(t => t.Background == c.Background && t.Foreground == c.Foreground && t.Glyph == c.Glyph);
+            }, () => {
+                tileModel.AddTile(model.brush.cell);
+                tileModel.UpdateIndexes(model);
+
+                tileButton.UpdateActive();
+            }) {
+                Position = new Point(15, 3),
                 FocusOnMouseClick = true
-            });
-            
-            this.Children.Add(new GlyphMenu(16, 16, font, model) {
-                Position = new Point(0),
-                FocusOnMouseClick = true
-            });
-            
-            this.Children.Add(new PaletteMenu(16, 4, font, model, paletteModel, colorPicker) {
-                Position = new Point(0, 16),
-                FocusOnMouseClick = true
-            });
-            this.Children.Add(new CellButton(font, () => {
+            };
+            CellButton foregroundButton = null, backgroundButton = null;
+            foregroundButton = new CellButton(font, () => {
                 return !paletteModel.paletteSet.Contains(model.brush.foreground);
             }, () => {
                 paletteModel.AddColor(model.brush.foreground);
                 paletteModel.UpdateIndexes(model);
-                colorPicker.UpdateColors();
-                colorPicker.UpdateBrushPoints(paletteModel);
-                colorPicker.UpdatePalettePoints(paletteModel);
-            }) {
-                Position = new Point(15, 19),
-                FocusOnMouseClick = true
-            });
 
-            this.Children.Add(new CellButton(font, () => {
+                PaletteChanged();
+            }) {
+                Position = new Point(15, 27),
+                FocusOnMouseClick = true
+            };
+            backgroundButton = new CellButton(font, () => {
                 return !paletteModel.paletteSet.Contains(model.brush.background);
             }, () => {
                 paletteModel.AddColor(model.brush.background);
                 paletteModel.UpdateIndexes(model);
-                colorPicker.UpdateColors();
-                colorPicker.UpdateBrushPoints(paletteModel);
-                colorPicker.UpdatePalettePoints(paletteModel);
+                PaletteChanged();
             }) {
-                Position = new Point(14, 19),
+                Position = new Point(14, 27),
                 FocusOnMouseClick = true
-            });
+            };
+            void PaletteChanged() {
+                foregroundButton.UpdateActive();
+                backgroundButton.UpdateActive();
 
+                pickerModel.UpdateColors();
+                pickerModel.UpdateBrushPoints(paletteModel);
+                pickerModel.UpdatePalettePoints(paletteModel);
+            }
 
-            this.Children.Add(new PickerMenu(16, 16, font, model, paletteModel, colorPicker) {
-                Position = new Point(0, 20),
+            var spriteMenu = new SpriteMenu(32, 32, font, model) {
+                Position = new Point(16, 0),
                 FocusOnMouseClick = true
-            });
+            };
+            var tileMenu = new TileMenu(16, 8, font, model, tileModel, () => {
+                tileButton.UpdateActive();
+                foregroundButton.UpdateActive();
+                backgroundButton.UpdateActive();
+                
+                tileModel.UpdateIndexes(model);
+                paletteModel.UpdateIndexes(model);
 
-            this.Children.Add(new ColorBar(16, 1, font, paletteModel, colorPicker) {
-                Position = new Point(0, 36),
+                pickerModel.UpdateColors();
+                pickerModel.UpdateBrushPoints(paletteModel);
+                pickerModel.UpdatePalettePoints(paletteModel);
+            }) {
+                Position = new Point(0),
                 FocusOnMouseClick = true
-            });
+            };
+            var glyphMenu = new GlyphMenu(16, 16, font, model) {
+                Position = new Point(0, 8),
+                FocusOnMouseClick = true
+            };
+            var paletteMenu = new PaletteMenu(16, 4, font, model, paletteModel, () => {
+                tileButton.UpdateActive();
+                foregroundButton.UpdateActive();
+                backgroundButton.UpdateActive();
+
+                tileModel.UpdateIndexes(model);
+                pickerModel.UpdateBrushPoints(paletteModel);
+
+                pickerModel.UpdateColors();
+                pickerModel.UpdateBrushPoints(paletteModel);
+                pickerModel.UpdatePalettePoints(paletteModel);
+            }) {
+                Position = new Point(0, 24),
+                FocusOnMouseClick = true
+            };
+
+            var pickerMenu = new PickerMenu(16, 16, font, model, pickerModel, () => {
+                tileButton.UpdateActive();
+                foregroundButton.UpdateActive();
+                backgroundButton.UpdateActive();
+
+                tileModel.UpdateIndexes(model);
+                paletteModel.UpdateIndexes(model);
+            }) {
+                Position = new Point(0, 28),
+                FocusOnMouseClick = true
+            };
+            var colorBar = new ColorBar(16, 1, font, paletteModel, pickerModel) {
+                Position = new Point(0, 44),
+                FocusOnMouseClick = true
+            };
+            this.Children.Add(tileMenu);
+            this.Children.Add(tileButton);
+            this.Children.Add(spriteMenu);
+            this.Children.Add(glyphMenu);
+            this.Children.Add(paletteMenu);
+            this.Children.Add(foregroundButton);
+            this.Children.Add(backgroundButton);
+            this.Children.Add(pickerMenu);
+            this.Children.Add(colorBar);
         }
         public override bool ProcessKeyboard(Keyboard info) {
             return base.ProcessKeyboard(info);
@@ -95,14 +158,27 @@ namespace ASECII {
 
             var camera = model.camera - model.pan.offsetPan;
 
+            var black = Color.Black;
+            var dark = new Color(25, 25, 25);
+
             for (int x = -hx; x < hx+1; x++) {
                 for(int y = -hy; y < hy+1; y++) {
                     var pos = camera + new Point(x, y);
+
+                    int ax = hx - x;
+                    int ay = hy - y;
                     if(model.sprite.InBounds(pos)) {
                         var cg = model.sprite[pos];
-                        Print(hx - x, hy - y, cg);
+                        Print(ax, ay, cg);
                     } else {
-                        Print(hx - x, hy - y, " ", Color.Transparent, Color.Blue);
+                        var c = ((ax + ay) % 2 == 0) ? black : dark;
+                        /*
+                        int r = (int)(Math.Sin(2 * pos.X + pos.Y) * 25);
+                        int g = (int)(Math.Sin(1 * pos.X + pos.Y) * 25);
+                        int b = (int)(Math.Sin(1 * pos.X + pos.Y) * 25);
+                        var c = new Color(r, g, b);
+                        */
+                        Print(ax, ay, " ", Color.Transparent, c);
                     }
                 }
             }
@@ -119,7 +195,7 @@ namespace ASECII {
                         var c = model.brush.cell;
                         if (model.ticks % 30 < 15) {
                             SetCellAppearance(hx - model.keyboard.keyCursor.X + model.camera.X, hy - model.keyboard.keyCursor.Y + model.camera.Y, new Cell(c.Foreground, c.Background, '_'));
-                            SetCellAppearance(hx - model.keyboard.margin.X + model.camera.X - 1, hy - model.keyboard.keyCursor.Y + model.camera.Y, new Cell(c.Foreground, c.Background, '>'));
+                            //SetCellAppearance(hx - model.keyboard.margin.X + model.camera.X - 1, hy - model.keyboard.keyCursor.Y + model.camera.Y, new Cell(c.Foreground, c.Background, '>'));
                         }
                         break;
                 }
@@ -310,7 +386,13 @@ namespace ASECII {
         public char glyph = 'A';
         public Color foreground = Color.Red;
         public Color background = Color.Black;
-        public ColoredGlyph cell => new ColoredGlyph(glyph, foreground, background);
+        public ColoredGlyph cell {
+            get => new ColoredGlyph(glyph, foreground, background); set {
+                foreground = value.Foreground;
+                background = value.Background;
+                glyph = value.GlyphCharacter;
+            }
+        }
         public BrushMode(SpriteModel model) {
             this.model = model;
         }

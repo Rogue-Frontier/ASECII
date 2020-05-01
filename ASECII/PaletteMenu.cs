@@ -9,13 +9,12 @@ namespace ASECII {
     class PaletteMenu : SadConsole.Console {
         SpriteModel spriteModel;
         PaletteModel paletteModel;
-        PickerModel colorPicker;
+        Action brushChanged;
         bool prevLeft;
         bool prevRight;
-        public PaletteMenu(int width, int height, Font font, SpriteModel spriteModel, PaletteModel paletteModel, PickerModel colorPicker) : base(width, height, font) {
+        public PaletteMenu(int width, int height, Font font, SpriteModel spriteModel, PaletteModel paletteModel, Action brushChanged) : base(width, height, font) {
             this.spriteModel = spriteModel;
             this.paletteModel = paletteModel;
-            this.colorPicker = colorPicker;
         }
         public override bool ProcessMouse(MouseConsoleState state) {
             if(state.IsOnConsole) {
@@ -45,7 +44,7 @@ namespace ASECII {
                             }
 
                         }
-                        colorPicker.UpdateBrushPoints(paletteModel);
+                        brushChanged?.Invoke();
                     }
                 }
             }

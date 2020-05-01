@@ -10,15 +10,12 @@ using System.Threading.Tasks;
 namespace ASECII {
     class PickerMenu : SadConsole.Console {
         SpriteModel model;
-        PaletteModel paletteModel;
         PickerModel colorPicker;
-        public PickerMenu(int width, int height, Font font, SpriteModel model, PaletteModel paletteModel, PickerModel colorPicker) : base(width, height, font) {
+        Action brushChanged;
+        public PickerMenu(int width, int height, Font font, SpriteModel model, PickerModel colorPicker, Action brushChanged) : base(width, height, font) {
             this.model = model;
-            this.paletteModel = paletteModel;
             this.colorPicker = colorPicker;
-            colorPicker.UpdateColors();
-            colorPicker.UpdateBrushPoints(paletteModel);
-            colorPicker.UpdatePalettePoints(paletteModel);
+            this.brushChanged = brushChanged;
         }
         public override bool ProcessKeyboard(Keyboard info) {
             return base.ProcessKeyboard(info);
@@ -35,7 +32,7 @@ namespace ASECII {
                     model.brush.background = colors[x, y];
                     colorPicker.backgroundPoint = new Point(x, y);
                 }
-                paletteModel.UpdateIndexes(model);
+                brushChanged?.Invoke();
             }
             return base.ProcessMouse(state);
         }

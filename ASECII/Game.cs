@@ -18,7 +18,7 @@ namespace ASECII {
 		*/
 		public static readonly int width = 64;
 		public static readonly int height = 64;
-		public Game() : base("Content/Square.font", width, height, null) {
+		public Game() : base("Content/IBMCGA.font", width, height, null) {
 			Content.RootDirectory = "Content";
 		}
 

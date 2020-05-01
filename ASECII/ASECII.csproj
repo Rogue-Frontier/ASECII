@@ -43,6 +43,7 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="BoxGlyph.cs" />
     <Compile Include="CellButton.cs" />
     <Compile Include="TileMenu.cs" />
     <Compile Include="PickerMenu.cs" />
@@ -121,9 +122,15 @@
     </None>
     <None Include="app.config" />
     <None Include="app.manifest" />
+    <Content Include="Content\IBMCGA.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="Content\Square.font">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <None Include="Content\IBMCGA.font">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="Content\square.ttf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
