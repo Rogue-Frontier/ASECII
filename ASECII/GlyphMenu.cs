@@ -10,7 +10,6 @@ namespace ASECII {
     class GlyphMenu : SadConsole.Console {
         SpriteModel spriteModel;
         bool prevLeft;
-        bool prevRight;
 
         public GlyphMenu(int width, int height, SpriteModel spriteModel) : base(width, height) {
             this.spriteModel = spriteModel;
@@ -31,7 +30,6 @@ namespace ASECII {
                 }
             }
             prevLeft = state.Mouse.LeftButtonDown;
-            prevRight = state.Mouse.RightButtonDown;
 
             return base.ProcessMouse(state);
         }

@@ -32,7 +32,8 @@ namespace ASECII {
                 tileButton.UpdateActive();
             }) {
                 Position = new Point(15, 3),
-                FocusOnMouseClick = true
+                FocusOnMouseClick = true,
+                UseMouse = true
             };
             CellButton foregroundButton = null, backgroundButton = null;
             foregroundButton = new CellButton(() => {
@@ -44,7 +45,8 @@ namespace ASECII {
                 PaletteChanged();
             }) {
                 Position = new Point(15, 27),
-                FocusOnMouseClick = true
+                FocusOnMouseClick = true,
+                UseMouse = true
             };
             backgroundButton = new CellButton(() => {
                 return !paletteModel.paletteSet.Contains(model.brush.background);
@@ -54,7 +56,8 @@ namespace ASECII {
                 PaletteChanged();
             }) {
                 Position = new Point(14, 27),
-                FocusOnMouseClick = true
+                FocusOnMouseClick = true,
+                UseMouse = true
             };
             void PaletteChanged() {
                 foregroundButton.UpdateActive();
@@ -67,7 +70,8 @@ namespace ASECII {
 
             var spriteMenu = new SpriteMenu(32, 32, model) {
                 Position = new Point(16, 0),
-                FocusOnMouseClick = true
+                FocusOnMouseClick = true,
+                UseMouse = true
             };
             var tileMenu = new TileMenu(16, 8, model, tileModel, () => {
                 tileButton.UpdateActive();
@@ -82,11 +86,13 @@ namespace ASECII {
                 pickerModel.UpdatePalettePoints(paletteModel);
             }) {
                 Position = new Point(0, 0),
-                FocusOnMouseClick = true
+                FocusOnMouseClick = true,
+                UseMouse = true
             };
             var glyphMenu = new GlyphMenu(16, 16, model) {
                 Position = new Point(0, 8),
-                FocusOnMouseClick = true
+                FocusOnMouseClick = true,
+                UseMouse = true
             };
             var paletteMenu = new PaletteMenu(16, 4, model, paletteModel, () => {
                 tileButton.UpdateActive();
@@ -101,7 +107,8 @@ namespace ASECII {
                 pickerModel.UpdatePalettePoints(paletteModel);
             }) {
                 Position = new Point(0, 24),
-                FocusOnMouseClick = true
+                FocusOnMouseClick = true,
+                UseMouse = true
             };
 
             var pickerMenu = new PickerMenu(16, 16, model, pickerModel, () => {
@@ -113,11 +120,13 @@ namespace ASECII {
                 paletteModel.UpdateIndexes(model);
             }) {
                 Position = new Point(0, 28),
-                FocusOnMouseClick = true
+                FocusOnMouseClick = true,
+                UseMouse = true
             };
             var colorBar = new ColorBar(16, 1, paletteModel, pickerModel) {
                 Position = new Point(0, 44),
-                FocusOnMouseClick = true
+                FocusOnMouseClick = true,
+                UseMouse = true
             };
             this.Children.Add(tileMenu);
             this.Children.Add(tileButton);
@@ -197,6 +206,18 @@ namespace ASECII {
                             //SetCellAppearance(hx - model.keyboard.margin.X + model.camera.X - 1, hy - model.keyboard.keyCursor.Y + model.camera.Y, new Cell(c.Foreground, c.Background, '>'));
                         }
                         break;
+                    case Mode.Select:
+                        var r = model.select.rect ?? Rectangle.Empty;
+                        if(r != Rectangle.Empty) {
+                            var left = hx - model.select.start.Value.X + model.camera.X;
+                            var top = hy - model.select.start.Value.Y + model.camera.Y;
+                            this.SetCellAppearance(left, top, new ColoredGlyph(model.brush.background, model.brush.foreground, BoxInfo.IBMCGA.glyphFromInfo[new BoxGlyph { e = Line.Single, s = Line.Single }]));
+                            this.SetCellAppearance(left + r.Width, top, new ColoredGlyph(model.brush.background, model.brush.foreground, BoxInfo.IBMCGA.glyphFromInfo[new BoxGlyph { e = Line.Single, s = Line.Single }]));
+                            this.SetCellAppearance(left, top + r.Height, new ColoredGlyph(model.brush.background, model.brush.foreground, BoxInfo.IBMCGA.glyphFromInfo[new BoxGlyph { e = Line.Single, s = Line.Single }]));
+                            this.SetCellAppearance(left + r.Width, top + r.Height, new ColoredGlyph(model.brush.background, model.brush.foreground, BoxInfo.IBMCGA.glyphFromInfo[new BoxGlyph { e = Line.Single, s = Line.Single }]));
+                        }
+                        
+                        break;
                 }
             }
             
@@ -227,6 +248,7 @@ namespace ASECII {
 
         public BrushMode brush;
         public KeyboardMode keyboard;
+        public SelectMode select;
         public PanMode pan;
 
         public int ticks = 0;
@@ -245,6 +267,7 @@ namespace ASECII {
             this.height = height;
             brush = new BrushMode(this);
             keyboard = new KeyboardMode(this);
+            select = new SelectMode(this);
             pan = new PanMode(this);
             Undo = new Stack<SingleEdit>();
             Redo = new Stack<SingleEdit>();
@@ -274,7 +297,7 @@ namespace ASECII {
                     keyboard.keyCursor = cursor;
                     keyboard.margin = cursor;
                 } else if(info.IsKeyPressed(S)) {
-
+                    mode = Mode.Select;
                 }
 
                 if (info.IsKeyDown(LeftControl) && info.IsKeyUp(LeftShift) && info.IsKeyPressed(Z)) {
@@ -307,7 +330,7 @@ namespace ASECII {
                         brush.ProcessMouse(state);
                         break;
                     case Mode.Select:
-                        
+                        select.ProcessMouse(state);
                         break;
                     case Mode.Keyboard:
                         keyboard.ProcessMouse(state);
@@ -471,26 +494,29 @@ namespace ASECII {
     }
     class SelectMode {
         SpriteModel model;
-        Point? start;
+        public Point? start;
         Point end;
-        Rectangle rect;
+        public Rectangle? rect;
+        bool prevLeft;
         public SelectMode(SpriteModel model) {
             this.model = model;
         }
         public void ProcessMouse(MouseScreenObjectState state) {
             if(state.Mouse.LeftButtonDown) {
-                if (start == null) {
-                    start = model.cursor;
-                } else {
+                if (start != null) {
                     end = model.cursor;
 
                     int leftX = Math.Min(start.Value.X, end.X);
                     int width = Math.Max(start.Value.X, end.X) - leftX;
                     int topY = Math.Min(start.Value.Y, end.Y);
-                    int height = Math.Max(start.Value.Y, end.Y);
+                    int height = Math.Max(start.Value.Y, end.Y) - topY;
                     rect = new Rectangle(leftX, topY, width, height);
+                } else if(!prevLeft) {
+                    start = model.cursor;
+                    rect = new Rectangle(start.Value, Point.None);
                 }
-            }
+            } 
+            prevLeft = state.Mouse.LeftButtonDown;
         }
 
     }

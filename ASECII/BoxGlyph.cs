@@ -24,9 +24,9 @@ namespace ASECII {
         w = 64, ww = 128
     }
     class BoxInfo {
-        Dictionary<int, BoxGlyph> glyphToInfo = new Dictionary<int, BoxGlyph>();
-        Dictionary<BoxGlyph, int> glyphFromInfo = new Dictionary<BoxGlyph, int>();
-        static BoxInfo IBMCGA;
+        public Dictionary<int, BoxGlyph> glyphToInfo = new Dictionary<int, BoxGlyph>();
+        public Dictionary<BoxGlyph, int> glyphFromInfo = new Dictionary<BoxGlyph, int>();
+        public static BoxInfo IBMCGA;
         static BoxInfo() {
             IBMCGA = new BoxInfo();
             Action<int, BoxGlyph> AddPair = IBMCGA.AddPair;

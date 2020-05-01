@@ -16,8 +16,8 @@ namespace ASECII {
         private static void Main(string[] args) {
             //SadConsole.Settings.UnlimitedFPS = true;
             SadConsole.Settings.UseDefaultExtendedFont = true;
-
-            SadConsole.Game.Create(width, height, "Content/IBMCGA.font");
+            SadConsole.Game.Create(width, height, "Content/IBMCGA.font", g => {
+            });
             SadConsole.Game.Instance.OnStart = Init;
             SadConsole.Game.Instance.Run();
             SadConsole.Game.Instance.Dispose();
