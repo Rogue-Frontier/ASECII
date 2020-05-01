@@ -1,4 +1,4 @@
-﻿using Microsoft.Xna.Framework;
+﻿using SadRogue.Primitives;
 using SadConsole;
 using System;
 using System.Collections.Generic;
@@ -22,7 +22,7 @@ namespace ASECII {
     class Layer {
         public List<List<ColoredGlyph>> cells;
         public Layer(int width, int height) {
-            cells = new List<List<ColoredGlyph>>(Enumerable.Range(0, width).Select(i => new List<ColoredGlyph>(Enumerable.Range(0, height).Select(j => new ColoredGlyph(' ', Color.Black, Color.White)))));
+            cells = new List<List<ColoredGlyph>>(Enumerable.Range(0, width).Select(i => new List<ColoredGlyph>(Enumerable.Range(0, height).Select(j => new ColoredGlyph(Color.Black, Color.White, ' ')))));
         }
         public ColoredGlyph this[Point p] { set => cells[p.X][p.Y] = value; get => cells[p.X][p.Y]; }
     }

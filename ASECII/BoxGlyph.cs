@@ -17,6 +17,12 @@ namespace ASECII {
             this.w = w;
         }
     }
+    enum BoxLines {
+        n = 1, nn = 2,
+        e = 4, ee = 8,
+        s = 16, ss = 32,
+        w = 64, ww = 128
+    }
     class BoxInfo {
         Dictionary<int, BoxGlyph> glyphToInfo = new Dictionary<int, BoxGlyph>();
         Dictionary<BoxGlyph, int> glyphFromInfo = new Dictionary<BoxGlyph, int>();

@@ -1,16 +1,15 @@
-﻿using Microsoft.Xna.Framework;
-using SadConsole;
-using SadConsole.Controls;
+﻿using SadConsole;
 using SadConsole.Input;
+using SadRogue.Primitives;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using static Microsoft.Xna.Framework.Input.Keys;
+using static SadConsole.Input.Keys;
 
 namespace ASECII {
     class EditorMain : SadConsole.Console {
         SpriteModel model;
-        public EditorMain(int width, int height, Font font) :base(width, height, font) {
+        public EditorMain(int width, int height) :base(width, height) {
             UseKeyboard = true;
             UseMouse = true;
             model = new SpriteModel(32, 32);
@@ -23,7 +22,7 @@ namespace ASECII {
             pickerModel.UpdatePalettePoints(paletteModel);
 
             CellButton tileButton = null;
-            tileButton = new CellButton(font, () => {
+            tileButton = new CellButton(() => {
                 var c = model.brush.cell;
                 return !tileModel.tiles.Any(t => t.Background == c.Background && t.Foreground == c.Foreground && t.Glyph == c.Glyph);
             }, () => {
@@ -36,7 +35,7 @@ namespace ASECII {
                 FocusOnMouseClick = true
             };
             CellButton foregroundButton = null, backgroundButton = null;
-            foregroundButton = new CellButton(font, () => {
+            foregroundButton = new CellButton(() => {
                 return !paletteModel.paletteSet.Contains(model.brush.foreground);
             }, () => {
                 paletteModel.AddColor(model.brush.foreground);
@@ -47,7 +46,7 @@ namespace ASECII {
                 Position = new Point(15, 27),
                 FocusOnMouseClick = true
             };
-            backgroundButton = new CellButton(font, () => {
+            backgroundButton = new CellButton(() => {
                 return !paletteModel.paletteSet.Contains(model.brush.background);
             }, () => {
                 paletteModel.AddColor(model.brush.background);
@@ -66,11 +65,11 @@ namespace ASECII {
                 pickerModel.UpdatePalettePoints(paletteModel);
             }
 
-            var spriteMenu = new SpriteMenu(32, 32, font, model) {
+            var spriteMenu = new SpriteMenu(32, 32, model) {
                 Position = new Point(16, 0),
                 FocusOnMouseClick = true
             };
-            var tileMenu = new TileMenu(16, 8, font, model, tileModel, () => {
+            var tileMenu = new TileMenu(16, 8, model, tileModel, () => {
                 tileButton.UpdateActive();
                 foregroundButton.UpdateActive();
                 backgroundButton.UpdateActive();
@@ -82,14 +81,14 @@ namespace ASECII {
                 pickerModel.UpdateBrushPoints(paletteModel);
                 pickerModel.UpdatePalettePoints(paletteModel);
             }) {
-                Position = new Point(0),
+                Position = new Point(0, 0),
                 FocusOnMouseClick = true
             };
-            var glyphMenu = new GlyphMenu(16, 16, font, model) {
+            var glyphMenu = new GlyphMenu(16, 16, model) {
                 Position = new Point(0, 8),
                 FocusOnMouseClick = true
             };
-            var paletteMenu = new PaletteMenu(16, 4, font, model, paletteModel, () => {
+            var paletteMenu = new PaletteMenu(16, 4, model, paletteModel, () => {
                 tileButton.UpdateActive();
                 foregroundButton.UpdateActive();
                 backgroundButton.UpdateActive();
@@ -105,7 +104,7 @@ namespace ASECII {
                 FocusOnMouseClick = true
             };
 
-            var pickerMenu = new PickerMenu(16, 16, font, model, pickerModel, () => {
+            var pickerMenu = new PickerMenu(16, 16, model, pickerModel, () => {
                 tileButton.UpdateActive();
                 foregroundButton.UpdateActive();
                 backgroundButton.UpdateActive();
@@ -116,7 +115,7 @@ namespace ASECII {
                 Position = new Point(0, 28),
                 FocusOnMouseClick = true
             };
-            var colorBar = new ColorBar(16, 1, font, paletteModel, pickerModel) {
+            var colorBar = new ColorBar(16, 1, paletteModel, pickerModel) {
                 Position = new Point(0, 44),
                 FocusOnMouseClick = true
             };
@@ -134,14 +133,14 @@ namespace ASECII {
             return base.ProcessKeyboard(info);
         }
         public override void Draw(TimeSpan timeElapsed) {
-            Clear();
+            this.Clear();
             base.Draw(timeElapsed);
         }
     }
 
     class SpriteMenu : SadConsole.Console {
         SpriteModel model;
-        public SpriteMenu(int width, int height, Font font, SpriteModel model) : base(width, height, font) {
+        public SpriteMenu(int width, int height, SpriteModel model) : base(width, height) {
             UseMouse = true;
             UseKeyboard = true;
             this.model = model;
@@ -150,7 +149,7 @@ namespace ASECII {
             base.Update(timeElapsed);
         }
         public override void Draw(TimeSpan timeElapsed) {
-            Clear();
+            this.Clear();
             model.ticks++;
 
             int hx = Width / 2;
@@ -169,7 +168,7 @@ namespace ASECII {
                     int ay = hy - y;
                     if(model.sprite.InBounds(pos)) {
                         var cg = model.sprite[pos];
-                        Print(ax, ay, cg);
+                        this.Print(ax, ay, cg);
                     } else {
                         var c = ((ax + ay) % 2 == 0) ? black : dark;
                         /*
@@ -178,7 +177,7 @@ namespace ASECII {
                         int b = (int)(Math.Sin(1 * pos.X + pos.Y) * 25);
                         var c = new Color(r, g, b);
                         */
-                        Print(ax, ay, " ", Color.Transparent, c);
+                        this.Print(ax, ay, " ", Color.Transparent, c);
                     }
                 }
             }
@@ -188,13 +187,13 @@ namespace ASECII {
                 switch (model.mode) {
                     case Mode.Edit:
                         if (IsMouseOver && model.ticks % 30 < 15) {
-                            SetCellAppearance(hx - model.cursor.X + model.camera.X, hy - model.cursor.Y + model.camera.Y, model.brush.cell);
+                            this.SetCellAppearance(hx - model.cursor.X + model.camera.X, hy - model.cursor.Y + model.camera.Y, model.brush.cell);
                         }
                         break;
                     case Mode.Keyboard:
                         var c = model.brush.cell;
                         if (model.ticks % 30 < 15) {
-                            SetCellAppearance(hx - model.keyboard.keyCursor.X + model.camera.X, hy - model.keyboard.keyCursor.Y + model.camera.Y, new Cell(c.Foreground, c.Background, '_'));
+                            this.SetCellAppearance(hx - model.keyboard.keyCursor.X + model.camera.X, hy - model.keyboard.keyCursor.Y + model.camera.Y, new ColoredGlyph(c.Foreground, c.Background, '_'));
                             //SetCellAppearance(hx - model.keyboard.margin.X + model.camera.X - 1, hy - model.keyboard.keyCursor.Y + model.camera.Y, new Cell(c.Foreground, c.Background, '>'));
                         }
                         break;
@@ -209,7 +208,7 @@ namespace ASECII {
             model.ProcessKeyboard(info);
             return base.ProcessKeyboard(info);
         }
-        public override bool ProcessMouse(MouseConsoleState state) {
+        public override bool ProcessMouse(MouseScreenObjectState state) {
             IsFocused = true;
             model.ProcessMouse(state);
             return base.ProcessMouse(state);
@@ -268,12 +267,14 @@ namespace ASECII {
                 } else if (info.IsKeyReleased(Space)) {
                     pan.allowPan = false;
                     camera -= pan.offsetPan;
-                    pan.startPan = Point.Zero;
-                    pan.offsetPan = Point.Zero;
+                    pan.startPan = Point.None;
+                    pan.offsetPan = Point.None;
                 } else if(info.IsKeyPressed(T)) {
                     mode = Mode.Keyboard;
                     keyboard.keyCursor = cursor;
                     keyboard.margin = cursor;
+                } else if(info.IsKeyPressed(S)) {
+
                 }
 
                 if (info.IsKeyDown(LeftControl) && info.IsKeyUp(LeftShift) && info.IsKeyPressed(Z)) {
@@ -296,8 +297,8 @@ namespace ASECII {
                 }
             }
         }
-        public void ProcessMouse(MouseConsoleState state) {
-            cursor = new Point(width / 2, height / 2) - state.ConsoleCellPosition + camera;
+        public void ProcessMouse(MouseScreenObjectState state) {
+            cursor = new Point(width / 2, height / 2) - state.SurfaceCellPosition + camera;
             if (pan.allowPan) {
                 pan.ProcessMouse(state);
             } else {
@@ -361,20 +362,20 @@ namespace ASECII {
         }
         public void ProcessKeyboard(Keyboard info) {
             if (info.IsKeyPressed(Right)) {
-                startPan.X--;
+                startPan += new Point(-1, 0);
             }
             if (info.IsKeyPressed(Left)) {
-                startPan.X++;
+                startPan += new Point(1, 0);
             }
             if (info.IsKeyPressed(Up)) {
-                startPan.Y++;
+                startPan += new Point(0, 1);
             }
             if (info.IsKeyPressed(Down)) {
-                startPan.Y--;
+                startPan += new Point(0, -1);
             }
             UpdateOffset();
         }
-        public void ProcessMouse(MouseConsoleState state) {
+        public void ProcessMouse(MouseScreenObjectState state) {
             UpdateOffset();
         }
         public void UpdateOffset() {
@@ -387,7 +388,7 @@ namespace ASECII {
         public Color foreground = Color.Red;
         public Color background = Color.Black;
         public ColoredGlyph cell {
-            get => new ColoredGlyph(glyph, foreground, background); set {
+            get => new ColoredGlyph(foreground, background, glyph); set {
                 foreground = value.Foreground;
                 background = value.Background;
                 glyph = value.GlyphCharacter;
@@ -397,7 +398,7 @@ namespace ASECII {
             this.model = model;
         }
 
-        public void ProcessMouse(MouseConsoleState state) {
+        public void ProcessMouse(MouseScreenObjectState state) {
             glyph = (char)((glyph + state.Mouse.ScrollWheelValueChange / 120 + 255) % 255);
             if (state.Mouse.LeftButtonDown) {
                 var prev = model.prevCell;
@@ -433,20 +434,19 @@ namespace ASECII {
         }
         public void ProcessKeyboard(Keyboard info) {
             if (info.IsKeyPressed(Right)) {
-                keyCursor.X--;
+                keyCursor += new Point(-1, 0);
             }
             if (info.IsKeyPressed(Left)) {
-                keyCursor.X++;
+                keyCursor += new Point(1, 0);
             }
             if (info.IsKeyPressed(Up)) {
-                keyCursor.Y++;
+                keyCursor += new Point(0, 1);
             }
             if (info.IsKeyPressed(Down)) {
-                keyCursor.Y--;
+                keyCursor += new Point(0, -1);
             }
             if(info.IsKeyPressed(Enter)) {
-                keyCursor.X = margin.X;
-                keyCursor.Y--;
+                keyCursor = new Point(margin.X, keyCursor.Y - 1);
             }
 
             ref var sprite = ref model.sprite;
@@ -455,15 +455,15 @@ namespace ASECII {
                 char c = info.KeysPressed[0].Character;
                 if (char.IsLetterOrDigit(c) && sprite.InBounds(keyCursor)) {
                     var layer = sprite.layers[0];
-                    var cg = new ColoredGlyph(c, brush.foreground, brush.background);
+                    var cg = new ColoredGlyph(brush.foreground, brush.background, c);
                     var action = new SingleEdit(keyCursor, layer, cg);
                     model.AddAction(action);
 
-                    keyCursor.X--;
+                    keyCursor += new Point(-1, 0);
                 }
             }
         }
-        public void ProcessMouse(MouseConsoleState state) {
+        public void ProcessMouse(MouseScreenObjectState state) {
             if(state.Mouse.LeftButtonDown) {
                 margin = keyCursor = model.cursor;
             }
@@ -477,7 +477,7 @@ namespace ASECII {
         public SelectMode(SpriteModel model) {
             this.model = model;
         }
-        public void ProcessMouse(MouseConsoleState state) {
+        public void ProcessMouse(MouseScreenObjectState state) {
             if(state.Mouse.LeftButtonDown) {
                 if (start == null) {
                     start = model.cursor;

@@ -1,4 +1,4 @@
-﻿using Microsoft.Xna.Framework;
+﻿using SadRogue.Primitives;
 using SadConsole;
 using SadConsole.Input;
 using System;
@@ -12,13 +12,13 @@ namespace ASECII {
         Action brushChanged;
         bool prevLeft;
         bool prevRight;
-        public PaletteMenu(int width, int height, Font font, SpriteModel spriteModel, PaletteModel paletteModel, Action brushChanged) : base(width, height, font) {
+        public PaletteMenu(int width, int height, SpriteModel spriteModel, PaletteModel paletteModel, Action brushChanged) : base(width, height) {
             this.spriteModel = spriteModel;
             this.paletteModel = paletteModel;
         }
-        public override bool ProcessMouse(MouseConsoleState state) {
-            if(state.IsOnConsole) {
-                int index = (state.ConsoleCellPosition.X) + (state.ConsoleCellPosition.Y * Width);
+        public override bool ProcessMouse(MouseScreenObjectState state) {
+            if(state.IsOnScreenObject) {
+                int index = (state.SurfaceCellPosition.X) + (state.SurfaceCellPosition.Y * Width);
                 if (index > -1 && index < paletteModel.palette.Count) {
                     bool pressLeft = !prevLeft && state.Mouse.LeftButtonDown;
                     var pressRight = !prevRight && state.Mouse.RightButtonDown;
@@ -55,7 +55,7 @@ namespace ASECII {
         }
         public override void Draw(TimeSpan timeElapsed) {
             for(int i = 0; i < paletteModel.palette.Count; i++) {
-                SetCellAppearance(i % Width, i / Width, new Cell(Color.Transparent, paletteModel.palette[i]));
+                this.SetCellAppearance(i % Width, i / Width, new ColoredGlyph(Color.Transparent, paletteModel.palette[i]));
             }
             if(paletteModel.foregroundIndex != null || paletteModel.backgroundIndex != null) {
                 if(paletteModel.foregroundIndex == paletteModel.backgroundIndex) {
@@ -63,21 +63,20 @@ namespace ASECII {
                     int x = i % Width;
                     int y = i / Width;
 
-                    SetCellAppearance(x, y, new Cell(paletteModel.palette[i].GetTextColor(), paletteModel.palette[i], 'X'));
+                    this.SetCellAppearance(x, y, new ColoredGlyph(paletteModel.palette[i].GetTextColor(), paletteModel.palette[i], 'X'));
                 } else {
                     if(paletteModel.foregroundIndex != null) {
                         var i = paletteModel.foregroundIndex.Value;
                         int x = i % Width;
                         int y = i / Width;
-
-                        SetCellAppearance(x, y, new Cell(paletteModel.palette[i].GetTextColor(), paletteModel.palette[i], 'F'));
+                        this.SetCellAppearance(x, y, new ColoredGlyph(paletteModel.palette[i].GetTextColor(), paletteModel.palette[i], 'F'));
                     }
                     if(paletteModel.backgroundIndex != null) {
                         var i = paletteModel.backgroundIndex.Value;
                         int x = i % Width;
                         int y = i / Width;
 
-                        SetCellAppearance(x, y, new Cell(paletteModel.palette[i].GetLuma() > 0.5 ? Color.Black : Color.White, paletteModel.palette[i], 'B'));
+                        this.SetCellAppearance(x, y, new ColoredGlyph(paletteModel.palette[i].GetLuma() > 0.5 ? Color.Black : Color.White, paletteModel.palette[i], 'B'));
                     }
                 }
             }

@@ -1,7 +1,7 @@
-﻿using Microsoft.Xna.Framework;
-using SadConsole;
+﻿using SadConsole;
 using SadConsole.Input;
 using System;
+using SadRogue.Primitives;
 
 namespace ASECII {
     class CellButton : SadConsole.Console {
@@ -12,14 +12,14 @@ namespace ASECII {
         Click click;
         bool prevLeft;
         bool pressed;
-        public CellButton(Font font, Active active, Click click) : base(1, 1, font) {
+        public CellButton(Active active, Click click) : base(1, 1) {
             this.active = active;
             this.click = click;
         }
         public void UpdateActive() {
             isActive = active();
         }
-        public override bool ProcessMouse(MouseConsoleState state) {
+        public override bool ProcessMouse(MouseScreenObjectState state) {
             if(isActive && IsMouseOver) {
                 if(state.Mouse.LeftButtonDown) {
                     if(!prevLeft) {
@@ -36,11 +36,11 @@ namespace ASECII {
         }
         public override void Draw(TimeSpan timeElapsed) {
             if(pressed) {
-                Print(0, 0, "+", Color.White, Color.Black);
+                this.Print(0, 0, "+", Color.White, Color.Black);
             } else if(isActive) {
-                Print(0, 0, "+", Color.Black, IsMouseOver ? Color.Yellow : Color.White);
+                this.Print(0, 0, "+", Color.Black, IsMouseOver ? Color.Yellow : Color.White);
             } else {
-                Print(0, 0, " ", Color.Transparent, Color.White);
+                this.Print(0, 0, " ", Color.Transparent, Color.White);
             }
             
 

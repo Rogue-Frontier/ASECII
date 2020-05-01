@@ -1,4 +1,4 @@
-﻿using Microsoft.Xna.Framework;
+﻿using SadRogue.Primitives;
 using SadConsole;
 using SadConsole.Input;
 using System;
@@ -12,7 +12,7 @@ namespace ASECII {
         SpriteModel model;
         PickerModel colorPicker;
         Action brushChanged;
-        public PickerMenu(int width, int height, Font font, SpriteModel model, PickerModel colorPicker, Action brushChanged) : base(width, height, font) {
+        public PickerMenu(int width, int height, SpriteModel model, PickerModel colorPicker, Action brushChanged) : base(width, height) {
             this.model = model;
             this.colorPicker = colorPicker;
             this.brushChanged = brushChanged;
@@ -20,9 +20,9 @@ namespace ASECII {
         public override bool ProcessKeyboard(Keyboard info) {
             return base.ProcessKeyboard(info);
         }
-        public override bool ProcessMouse(MouseConsoleState state) {
-            var (x, y) = state.ConsoleCellPosition;
-            if (state.IsOnConsole) {
+        public override bool ProcessMouse(MouseScreenObjectState state) {
+            var (x, y) = state.SurfaceCellPosition;
+            if (state.IsOnScreenObject) {
                 var colors = colorPicker.colors;
                 if (state.Mouse.LeftButtonDown) {
                     model.brush.foreground = colors[x, y];
@@ -40,14 +40,14 @@ namespace ASECII {
             var colors = colorPicker.colors;
             for (int x = 0; x < Width; x++) {
                 for (int y = 0; y < Height; y++) {
-                    SetCellAppearance(x, y, new Cell(Color.Transparent, colors[x, y]));
+                    this.SetCellAppearance(x, y, new ColoredGlyph(Color.Transparent, colors[x, y]));
                 }
             }
 
             foreach (var (x, y) in colorPicker.palettePoints) {
                 var c = colors[x, y];
                 var f = c.GetTextColor();
-                SetCellAppearance(x, y, new Cell(f, c, '.'));
+                this.SetCellAppearance(x, y, new ColoredGlyph(f, c, '.'));
             }
             var backgroundPoint = colorPicker.backgroundPoint;
             var foregroundPoint = colorPicker.foregroundPoint;
@@ -56,19 +56,19 @@ namespace ASECII {
                     var (x, y) = foregroundPoint.Value;
                     var c = colors[x, y];
                     var f = c.GetTextColor();
-                    SetCellAppearance(x, y, new Cell(f, c, 'X'));
+                    this.SetCellAppearance(x, y, new ColoredGlyph(f, c, 'X'));
                 } else {
                     if (foregroundPoint != null) {
                         var (x, y) = foregroundPoint.Value;
                         var c = colors[x, y];
                         var f = c.GetTextColor();
-                        SetCellAppearance(x, y, new Cell(f, c, 'F'));
+                        this.SetCellAppearance(x, y, new ColoredGlyph(f, c, 'F'));
                     }
                     if (backgroundPoint != null) {
                         var (x, y) = backgroundPoint.Value;
                         var c = colors[x, y];
                         var f = c.GetTextColor();
-                        SetCellAppearance(x, y, new Cell(f, c, 'B'));
+                        this.SetCellAppearance(x, y, new ColoredGlyph(f, c, 'B'));
                     }
                 }
             }
@@ -135,7 +135,7 @@ namespace ASECII {
         int index = 0;
         Color[] bar;
 
-        public ColorBar(int width, int height, Font font, PaletteModel paletteModel, PickerModel model) : base(width, height, font) {
+        public ColorBar(int width, int height, PaletteModel paletteModel, PickerModel model) : base(width, height) {
             this.paletteModel = paletteModel;
             this.colorPicker = model;
             bar = new Color[width];
@@ -144,9 +144,9 @@ namespace ASECII {
             }
         }
 
-        public override bool ProcessMouse(MouseConsoleState state) {
-            var (x, y) = state.ConsoleCellPosition;
-            if (state.IsOnConsole) {
+        public override bool ProcessMouse(MouseScreenObjectState state) {
+            var (x, y) = state.SurfaceCellPosition;
+            if (state.IsOnScreenObject) {
                 if (state.Mouse.LeftButtonDown) {
                     index = x;
                     colorPicker.hue = index * 360d / bar.Length;
@@ -159,11 +159,11 @@ namespace ASECII {
         }
         public override void Draw(TimeSpan timeElapsed) {
             for (int x = 0; x < Width; x++) {
-                Print(x, 0, " ", Color.Transparent, bar[x]);
+                this.Print(x, 0, " ", Color.Transparent, bar[x]);
             }
-            var c = GetCellAppearance(index, 0).Background;
+            var c = this.GetCellAppearance(index, 0).Background;
             var g = c.GetTextColor();
-            SetCellAppearance(index, 0, new Cell(g, c, '*'));
+            this.SetCellAppearance(index, 0, new ColoredGlyph(g, c, '*'));
 
             base.Draw(timeElapsed);
         }

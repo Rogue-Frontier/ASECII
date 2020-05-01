@@ -12,13 +12,13 @@ namespace ASECII {
         bool prevLeft;
         bool prevRight;
 
-        public GlyphMenu(int width, int height, Font font, SpriteModel spriteModel) : base(width, height, font) {
+        public GlyphMenu(int width, int height, SpriteModel spriteModel) : base(width, height) {
             this.spriteModel = spriteModel;
         }
 
-        public override bool ProcessMouse(MouseConsoleState state) {
-            if (state.IsOnConsole) {
-                int index = (state.ConsoleCellPosition.X) + (state.ConsoleCellPosition.Y * Width);
+        public override bool ProcessMouse(MouseScreenObjectState state) {
+            if (state.IsOnScreenObject) {
+                int index = (state.SurfaceCellPosition.X) + (state.SurfaceCellPosition.Y * Width);
                 if (index < 256) {
                     if (!prevLeft && state.Mouse.LeftButtonDown) {
                         if (spriteModel.brush.glyph != index) {
@@ -38,12 +38,12 @@ namespace ASECII {
         public override void Draw(TimeSpan timeElapsed) {
             for (int i = 0; i < 256; i++) {
                 string s = ((char)i).ToString();
-                Print(i % Width, i / Width, s, spriteModel.brush.foreground, spriteModel.brush.background);
+                this.Print(i % Width, i / Width, s, spriteModel.brush.foreground, spriteModel.brush.background);
             }
             var x = spriteModel.brush.glyph % Width;
             var y = spriteModel.brush.glyph / Width;
-            var c = GetCellAppearance(x, y);
-            SetCellAppearance(x, y, new Cell(c.Background, c.Foreground, c.Glyph));
+            var c = this.GetCellAppearance(x, y);
+            this.SetCellAppearance(x, y, new ColoredGlyph(c.Background, c.Foreground, c.Glyph));
 
 
             base.Draw(timeElapsed);
