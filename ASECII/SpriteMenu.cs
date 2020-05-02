@@ -209,8 +209,8 @@ namespace ASECII {
                     case Mode.Select:
                         var r = model.select.rect ?? Rectangle.Empty;
                         if(r != Rectangle.Empty) {
-                            var left = hx - model.select.start.Value.X + model.camera.X;
-                            var top = hy - model.select.start.Value.Y + model.camera.Y;
+                            var left = hx - model.select.rect.Value.X + model.camera.X;
+                            var top = hy - model.select.rect.Value.Y + model.camera.Y;
                             this.SetCellAppearance(left, top, new ColoredGlyph(model.brush.background, model.brush.foreground, BoxInfo.IBMCGA.glyphFromInfo[new BoxGlyph { e = Line.Single, s = Line.Single }]));
                             this.SetCellAppearance(left + r.Width, top, new ColoredGlyph(model.brush.background, model.brush.foreground, BoxInfo.IBMCGA.glyphFromInfo[new BoxGlyph { e = Line.Single, s = Line.Single }]));
                             this.SetCellAppearance(left, top + r.Height, new ColoredGlyph(model.brush.background, model.brush.foreground, BoxInfo.IBMCGA.glyphFromInfo[new BoxGlyph { e = Line.Single, s = Line.Single }]));
@@ -290,8 +290,8 @@ namespace ASECII {
                 } else if (info.IsKeyReleased(Space)) {
                     pan.allowPan = false;
                     camera -= pan.offsetPan;
-                    pan.startPan = Point.None;
-                    pan.offsetPan = Point.None;
+                    pan.startPan = new Point(0, 0);
+                    pan.offsetPan = new Point(0, 0);
                 } else if(info.IsKeyPressed(T)) {
                     mode = Mode.Keyboard;
                     keyboard.keyCursor = cursor;
@@ -506,14 +506,14 @@ namespace ASECII {
                 if (start != null) {
                     end = model.cursor;
 
-                    int leftX = Math.Min(start.Value.X, end.X);
-                    int width = Math.Max(start.Value.X, end.X) - leftX;
-                    int topY = Math.Min(start.Value.Y, end.Y);
-                    int height = Math.Max(start.Value.Y, end.Y) - topY;
+                    int leftX = Math.Max(start.Value.X, end.X);
+                    int width = leftX - Math.Min(start.Value.X, end.X);
+                    int topY = Math.Max(start.Value.Y, end.Y);
+                    int height = topY - Math.Min(start.Value.Y, end.Y);
                     rect = new Rectangle(leftX, topY, width, height);
                 } else if(!prevLeft) {
                     start = model.cursor;
-                    rect = new Rectangle(start.Value, Point.None);
+                    rect = new Rectangle(start.Value, new Point(0, 0));
                 }
             } 
             prevLeft = state.Mouse.LeftButtonDown;
