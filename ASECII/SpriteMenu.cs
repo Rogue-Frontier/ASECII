@@ -163,6 +163,7 @@ namespace ASECII {
         public override void Draw(TimeSpan timeElapsed) {
             this.Clear();
             model.ticks++;
+            model.ticksSelect++;
 
             int hx = Width / 2;
             int hy = Height / 2;
@@ -199,12 +200,28 @@ namespace ASECII {
             } else {
                 switch (model.mode) {
                     case Mode.Edit:
-                        if (IsMouseOver && model.ticks % 30 < 15) {
-                            this.SetCellAppearance(model.cursorScreen.X, model.cursorScreen.Y, model.brush.cell);
+                        if (model.ticksSelect % 30 < 15) {
+                            var r = model.select.rect ?? Rectangle.Empty;
+                            if (r != Rectangle.Empty) {
+                                DrawRect(r);
+                            }
                         }
+                        if ((model.ticks % 30) < 15) {
+                            if (IsMouseOver) {
+                                this.SetCellAppearance(model.cursorScreen.X, model.cursorScreen.Y, model.brush.cell);
+                            }
+                        }
+                        
+
                         break;
                     case Mode.Keyboard:
                         var c = model.brush.cell;
+                        if(model.ticksSelect%30 < 15) {
+                            var r = model.select.rect ?? Rectangle.Empty;
+                            if (r != Rectangle.Empty) {
+                                DrawRect(r);
+                            }
+                        }
                         if (model.ticks % 30 < 15) {
                             var p = (model.keyboard.keyCursor ?? model.cursor) - camera;
                             this.SetCellAppearance(p.X, p.Y, new ColoredGlyph(c.Foreground, c.Background, '_'));
@@ -212,60 +229,13 @@ namespace ASECII {
                         }
                         break;
                     case Mode.Select:
-                        var r = model.select.rect ?? Rectangle.Empty;
-                        if(r != Rectangle.Empty) {
-                            var (left, top) = (r.X, r.Y);
-                            
-                            
-                            if(r.Width > 0 && r.Height > 0) {
-                                DrawSidesX(Line.Single);
-                                DrawSidesY(Line.Single);
-                                DrawCornerNW();
-                                DrawCornerNE();
-                                DrawCornerSW();
-                                DrawCornerSE();
-                            } else if (r.Width > 0) {
-                                DrawSidesX(Line.Double);
-                                Draw(left, top, new BoxGlyph { n = Line.Single, e = Line.Double, s = Line.Single });
-                                Draw(left + r.Width, top, new BoxGlyph { n = Line.Single, w = Line.Double, s = Line.Single });
-                            } else if (r.Height > 0) {
-                                DrawSidesY(Line.Double);
-                                Draw(left, top, new BoxGlyph { s = Line.Double, e = Line.Single, w = Line.Single });
-                                Draw(left, top + r.Height, new BoxGlyph { n = Line.Double, w = Line.Single, e = Line.Single });
+                        if (model.ticksSelect % 20 < 10) {
+                            var r = model.select.rect ?? Rectangle.Empty;
+                            if (r != Rectangle.Empty) {
+                                DrawRect(r);
                             } else {
-                                Draw(left, top, new BoxGlyph { n = Line.Single, e = Line.Single, s = Line.Single, w = Line.Single });
-                            }
-
-                            void DrawCornerNW() {
-                                //Left top
-                                Draw(left, top, new BoxGlyph { e = Line.Single, s = Line.Single });
-                            }
-                            void DrawCornerNE() {
-                                //Right top
-                                Draw(left + r.Width, top, new BoxGlyph { w = Line.Single, s = Line.Single });
-                            }
-                            void DrawCornerSW() {
-                                //Left bottom
-                                Draw(left, top + r.Height, new BoxGlyph { e = Line.Single, n = Line.Single });
-                            }
-                            void DrawCornerSE() {
-                                //Right bottom
-                                Draw(left + r.Width, top + r.Height, new BoxGlyph { n = Line.Single, w = Line.Single });
-                            }
-                            void Draw(int x, int y, BoxGlyph g) {
-                                this.SetCellAppearance(x, y, new ColoredGlyph(model.brush.foreground, model.brush.background, BoxInfo.IBMCGA.glyphFromInfo[g]));
-                            }
-                            void DrawSidesX(Line style = Line.Single) {
-                                foreach (var x in Enumerable.Range(left, r.Width)) {
-                                    Draw(x, top, new BoxGlyph { e = style, w = style });
-                                    Draw(x, top + r.Height, new BoxGlyph { e = style, w = style });
-                                }
-                            }
-                            void DrawSidesY(Line style = Line.Single) {
-                                foreach (var y in Enumerable.Range(top, r.Height)) {
-                                    Draw(left, y, new BoxGlyph { n = style, s = style });
-                                    Draw(left + r.Width, y, new BoxGlyph { n = style, s = style });
-                                }
+                                var p = model.cursorScreen;
+                                DrawBox(p.X, p.Y, new BoxGlyph { n = Line.Single, e = Line.Single, s = Line.Single, w = Line.Single });
                             }
                         }
                         
@@ -276,6 +246,62 @@ namespace ASECII {
             
 
             base.Draw(timeElapsed);
+
+            void DrawRect(Rectangle r) {
+                var (left, top) = (r.X, r.Y);
+
+
+                if (r.Width > 0 && r.Height > 0) {
+                    DrawSidesX(Line.Single);
+                    DrawSidesY(Line.Single);
+                    DrawCornerNW();
+                    DrawCornerNE();
+                    DrawCornerSW();
+                    DrawCornerSE();
+                } else if (r.Width > 0) {
+                    DrawSidesX(Line.Double);
+                    DrawBox(left, top, new BoxGlyph { n = Line.Single, e = Line.Double, s = Line.Single });
+                    DrawBox(left + r.Width, top, new BoxGlyph { n = Line.Single, w = Line.Double, s = Line.Single });
+                } else if (r.Height > 0) {
+                    DrawSidesY(Line.Double);
+                    DrawBox(left, top, new BoxGlyph { s = Line.Double, e = Line.Single, w = Line.Single });
+                    DrawBox(left, top + r.Height, new BoxGlyph { n = Line.Double, w = Line.Single, e = Line.Single });
+                } else {
+                    DrawBox(left, top, new BoxGlyph { n = Line.Single, e = Line.Single, s = Line.Single, w = Line.Single });
+                }
+
+                void DrawCornerNW() {
+                    //Left top
+                    DrawBox(left, top, new BoxGlyph { e = Line.Single, s = Line.Single });
+                }
+                void DrawCornerNE() {
+                    //Right top
+                    DrawBox(left + r.Width, top, new BoxGlyph { w = Line.Single, s = Line.Single });
+                }
+                void DrawCornerSW() {
+                    //Left bottom
+                    DrawBox(left, top + r.Height, new BoxGlyph { e = Line.Single, n = Line.Single });
+                }
+                void DrawCornerSE() {
+                    //Right bottom
+                    DrawBox(left + r.Width, top + r.Height, new BoxGlyph { n = Line.Single, w = Line.Single });
+                }
+                void DrawSidesX(Line style = Line.Single) {
+                    foreach (var x in Enumerable.Range(left, r.Width)) {
+                        DrawBox(x, top, new BoxGlyph { e = style, w = style });
+                        DrawBox(x, top + r.Height, new BoxGlyph { e = style, w = style });
+                    }
+                }
+                void DrawSidesY(Line style = Line.Single) {
+                    foreach (var y in Enumerable.Range(top, r.Height)) {
+                        DrawBox(left, y, new BoxGlyph { n = style, s = style });
+                        DrawBox(left + r.Width, y, new BoxGlyph { n = style, s = style });
+                    }
+                }
+            }
+            void DrawBox(int x, int y, BoxGlyph g) {
+                this.SetCellAppearance(x, y, new ColoredGlyph(model.brush.foreground, model.brush.background, BoxInfo.IBMCGA.glyphFromInfo[g]));
+            }
         }
         public override bool ProcessKeyboard(Keyboard info) {
             model.ProcessKeyboard(info);
@@ -304,6 +330,7 @@ namespace ASECII {
         public PanMode pan;
 
         public int ticks = 0;
+        public int ticksSelect = 0;
 
         public Point camera = new Point();
         public Point cursor = new Point();       //Position on the image; stored as offset from camera
@@ -325,6 +352,14 @@ namespace ASECII {
             Undo = new Stack<SingleEdit>();
             Redo = new Stack<SingleEdit>();
             mode = Mode.Edit;
+        }
+        public bool IsEditable(Point p) {
+            bool result = sprite.InBounds(p);
+            if(select.rect.HasValue) {
+                var rect = select.rect.Value;
+                result = result && p.X >= rect.X && p.Y >= rect.Y && p.X <= rect.X + rect.Width && p.Y <= rect.Y + rect.Height;
+            }
+            return result;
         }
         public void ProcessKeyboard(Keyboard info) {
 
@@ -485,15 +520,14 @@ namespace ASECII {
                 for (int i = 0; i < length; i++) {
                     
                     var p = prev + new Point((int)(i * offset.X / length), (int)(i * offset.Y / length));
-                    var sprite = model.sprite;
-                    if (sprite.InBounds(p)) {
-                        var layer = sprite.layers[0];
+                    if (model.IsEditable(p)) {
+                        var layer = model.sprite.layers[0];
                         var action = new SingleEdit(p, layer, model.brush.cell);
                         model.AddAction(action);
                     }
                 }
 
-                if (model.sprite.InBounds(model.cursor)) {
+                if (model.IsEditable(model.cursor)) {
                     var layer = model.sprite.layers[0];
                     var action = new SingleEdit(model.cursor, layer, model.brush.cell);
                     model.AddAction(action);
@@ -539,7 +573,7 @@ namespace ASECII {
             if (pressed.Any()) {
                 char c = pressed.First().Character;
                 var p = keyCursor ?? model.cursor;
-                if(sprite.InBounds(p)) {
+                if(model.IsEditable(p)) {
                     if (c != 0) {
                         var layer = sprite.layers[0];
                         var cg = new ColoredGlyph(brush.foreground, brush.background, c);
@@ -571,6 +605,7 @@ namespace ASECII {
         Point end;
         public Rectangle? rect;
         bool prevLeft;
+
         public SelectMode(SpriteModel model) {
             this.model = model;
         }
@@ -578,18 +613,28 @@ namespace ASECII {
             if(state.Mouse.LeftButtonDown) {
 
                 if (prevLeft) {
-                    end = model.cursor;
+                    if(end != model.cursor) {
+                        end = model.cursor;
 
-                    int leftX = Math.Min(start.Value.X, end.X);
-                    int width = Math.Max(start.Value.X, end.X) - leftX;
-                    int topY = Math.Min(start.Value.Y, end.Y);
-                    int height = Math.Max(start.Value.Y, end.Y) - topY;
-                    rect = new Rectangle(leftX, topY, width, height);
+                        int leftX = Math.Min(start.Value.X, end.X);
+                        int width = Math.Max(start.Value.X, end.X) - leftX;
+                        int topY = Math.Min(start.Value.Y, end.Y);
+                        int height = Math.Max(start.Value.Y, end.Y) - topY;
+                        rect = new Rectangle(leftX, topY, width, height);
+
+                        //var t = model.ticks % 30;
+                        //model.ticksSelect = t < 15 ? t - 15 : t - 30;
+                        model.ticksSelect = -15;
+                    }
                 } else {
                     start = model.cursor;
                     rect = new Rectangle(start.Value, new Point(0, 0));
                 }
-            } 
+            } else if(prevLeft) {
+                if(start == end) {
+                    rect = null;
+                }
+            }
             prevLeft = state.Mouse.LeftButtonDown;
         }
 
