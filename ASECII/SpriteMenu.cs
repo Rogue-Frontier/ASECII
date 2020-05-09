@@ -89,7 +89,10 @@ namespace ASECII {
                 FocusOnMouseClick = true,
                 UseMouse = true
             };
-            var glyphMenu = new GlyphMenu(16, 16, model) {
+            var glyphMenu = new GlyphMenu(16, 16, model, () => {
+                tileButton.UpdateActive();
+                tileModel.UpdateIndexes(model);
+            }) {
                 Position = new Point(0, 8),
                 FocusOnMouseClick = true,
                 UseMouse = true
@@ -169,9 +172,10 @@ namespace ASECII {
             var black = Color.Black;
             var dark = new Color(25, 25, 25);
 
+            var center = new Point(hx, hy);
             for (int x = -hx; x < hx+1; x++) {
                 for(int y = -hy; y < hy+1; y++) {
-                    var pos = camera + new Point(x, y);
+                    var pos = camera - new Point(x, y) + center;
 
                     int ax = hx - x;
                     int ay = hy - y;
@@ -196,25 +200,73 @@ namespace ASECII {
                 switch (model.mode) {
                     case Mode.Edit:
                         if (IsMouseOver && model.ticks % 30 < 15) {
-                            this.SetCellAppearance(hx - model.cursor.X + model.camera.X, hy - model.cursor.Y + model.camera.Y, model.brush.cell);
+                            this.SetCellAppearance(model.cursorScreen.X, model.cursorScreen.Y, model.brush.cell);
                         }
                         break;
                     case Mode.Keyboard:
                         var c = model.brush.cell;
                         if (model.ticks % 30 < 15) {
-                            this.SetCellAppearance(hx - model.keyboard.keyCursor.X + model.camera.X, hy - model.keyboard.keyCursor.Y + model.camera.Y, new ColoredGlyph(c.Foreground, c.Background, '_'));
+                            var p = (model.keyboard.keyCursor ?? model.cursor) - camera;
+                            this.SetCellAppearance(p.X, p.Y, new ColoredGlyph(c.Foreground, c.Background, '_'));
                             //SetCellAppearance(hx - model.keyboard.margin.X + model.camera.X - 1, hy - model.keyboard.keyCursor.Y + model.camera.Y, new Cell(c.Foreground, c.Background, '>'));
                         }
                         break;
                     case Mode.Select:
                         var r = model.select.rect ?? Rectangle.Empty;
                         if(r != Rectangle.Empty) {
-                            var left = hx - model.select.rect.Value.X + model.camera.X;
-                            var top = hy - model.select.rect.Value.Y + model.camera.Y;
-                            this.SetCellAppearance(left, top, new ColoredGlyph(model.brush.background, model.brush.foreground, BoxInfo.IBMCGA.glyphFromInfo[new BoxGlyph { e = Line.Single, s = Line.Single }]));
-                            this.SetCellAppearance(left + r.Width, top, new ColoredGlyph(model.brush.background, model.brush.foreground, BoxInfo.IBMCGA.glyphFromInfo[new BoxGlyph { e = Line.Single, s = Line.Single }]));
-                            this.SetCellAppearance(left, top + r.Height, new ColoredGlyph(model.brush.background, model.brush.foreground, BoxInfo.IBMCGA.glyphFromInfo[new BoxGlyph { e = Line.Single, s = Line.Single }]));
-                            this.SetCellAppearance(left + r.Width, top + r.Height, new ColoredGlyph(model.brush.background, model.brush.foreground, BoxInfo.IBMCGA.glyphFromInfo[new BoxGlyph { e = Line.Single, s = Line.Single }]));
+                            var (left, top) = (r.X, r.Y);
+                            
+                            
+                            if(r.Width > 0 && r.Height > 0) {
+                                DrawSidesX(Line.Single);
+                                DrawSidesY(Line.Single);
+                                DrawCornerNW();
+                                DrawCornerNE();
+                                DrawCornerSW();
+                                DrawCornerSE();
+                            } else if (r.Width > 0) {
+                                DrawSidesX(Line.Double);
+                                Draw(left, top, new BoxGlyph { n = Line.Single, e = Line.Double, s = Line.Single });
+                                Draw(left + r.Width, top, new BoxGlyph { n = Line.Single, w = Line.Double, s = Line.Single });
+                            } else if (r.Height > 0) {
+                                DrawSidesY(Line.Double);
+                                Draw(left, top, new BoxGlyph { s = Line.Double, e = Line.Single, w = Line.Single });
+                                Draw(left, top + r.Height, new BoxGlyph { n = Line.Double, w = Line.Single, e = Line.Single });
+                            } else {
+                                Draw(left, top, new BoxGlyph { n = Line.Single, e = Line.Single, s = Line.Single, w = Line.Single });
+                            }
+
+                            void DrawCornerNW() {
+                                //Left top
+                                Draw(left, top, new BoxGlyph { e = Line.Single, s = Line.Single });
+                            }
+                            void DrawCornerNE() {
+                                //Right top
+                                Draw(left + r.Width, top, new BoxGlyph { w = Line.Single, s = Line.Single });
+                            }
+                            void DrawCornerSW() {
+                                //Left bottom
+                                Draw(left, top + r.Height, new BoxGlyph { e = Line.Single, n = Line.Single });
+                            }
+                            void DrawCornerSE() {
+                                //Right bottom
+                                Draw(left + r.Width, top + r.Height, new BoxGlyph { n = Line.Single, w = Line.Single });
+                            }
+                            void Draw(int x, int y, BoxGlyph g) {
+                                this.SetCellAppearance(x, y, new ColoredGlyph(model.brush.foreground, model.brush.background, BoxInfo.IBMCGA.glyphFromInfo[g]));
+                            }
+                            void DrawSidesX(Line style = Line.Single) {
+                                foreach (var x in Enumerable.Range(left, r.Width)) {
+                                    Draw(x, top, new BoxGlyph { e = style, w = style });
+                                    Draw(x, top + r.Height, new BoxGlyph { e = style, w = style });
+                                }
+                            }
+                            void DrawSidesY(Line style = Line.Single) {
+                                foreach (var y in Enumerable.Range(top, r.Height)) {
+                                    Draw(left, y, new BoxGlyph { n = style, s = style });
+                                    Draw(left + r.Width, y, new BoxGlyph { n = style, s = style });
+                                }
+                            }
                         }
                         
                         break;
@@ -255,6 +307,7 @@ namespace ASECII {
 
         public Point camera = new Point();
         public Point cursor = new Point();       //Position on the image; stored as offset from camera
+        public Point cursorScreen = new Point();
         public bool keyboardMode;
 
         public Point prevCell;
@@ -294,8 +347,9 @@ namespace ASECII {
                     pan.offsetPan = new Point(0, 0);
                 } else if(info.IsKeyPressed(T)) {
                     mode = Mode.Keyboard;
-                    keyboard.keyCursor = cursor;
-                    keyboard.margin = cursor;
+                    keyboard.keyCursor = null;
+                    //keyboard.keyCursor = cursor;
+                    //keyboard.margin = cursor;
                 } else if(info.IsKeyPressed(S)) {
                     mode = Mode.Select;
                 }
@@ -321,7 +375,8 @@ namespace ASECII {
             }
         }
         public void ProcessMouse(MouseScreenObjectState state) {
-            cursor = new Point(width / 2, height / 2) - state.SurfaceCellPosition + camera;
+            cursorScreen = state.SurfaceCellPosition;
+            cursor = cursorScreen + camera;
             if (pan.allowPan) {
                 pan.ProcessMouse(state);
             } else {
@@ -448,7 +503,7 @@ namespace ASECII {
     }
     class KeyboardMode {
         SpriteModel model;
-        public Point keyCursor;
+        public Point? keyCursor;
         public Point margin;
 
         public KeyboardMode(SpriteModel model) {
@@ -456,39 +511,57 @@ namespace ASECII {
             keyCursor = new Point();
         }
         public void ProcessKeyboard(Keyboard info) {
+            ref int ticks = ref model.ticks;
             if (info.IsKeyPressed(Right)) {
-                keyCursor += new Point(-1, 0);
+                keyCursor = (keyCursor ?? model.cursor) + new Point(1, 0);
+                ticks = 0;
             }
             if (info.IsKeyPressed(Left)) {
-                keyCursor += new Point(1, 0);
+                keyCursor = (keyCursor ?? model.cursor) + new Point(-1, 0);
+                ticks = 0;
             }
             if (info.IsKeyPressed(Up)) {
-                keyCursor += new Point(0, 1);
+                keyCursor = (keyCursor ?? model.cursor) + new Point(0, -1);
+                ticks = 0;
             }
             if (info.IsKeyPressed(Down)) {
-                keyCursor += new Point(0, -1);
+                keyCursor = (keyCursor ?? model.cursor) + new Point(0, 1);
+                ticks = 0;
             }
-            if(info.IsKeyPressed(Enter)) {
-                keyCursor = new Point(margin.X, keyCursor.Y - 1);
+            if(info.IsKeyPressed(Enter) && keyCursor.HasValue) {
+                keyCursor = new Point(margin.X, keyCursor.Value.Y + 1);
+                ticks = 0;
             }
 
             ref var sprite = ref model.sprite;
             ref var brush = ref model.brush;
-            if (info.KeysPressed.Count == 1 && (info.KeysDown.Count == 1 || (info.KeysDown.Count == 2 && info.IsKeyDown(LeftShift)))) {
-                char c = info.KeysPressed[0].Character;
-                if (char.IsLetterOrDigit(c) && sprite.InBounds(keyCursor)) {
-                    var layer = sprite.layers[0];
-                    var cg = new ColoredGlyph(brush.foreground, brush.background, c);
-                    var action = new SingleEdit(keyCursor, layer, cg);
-                    model.AddAction(action);
-
-                    keyCursor += new Point(-1, 0);
+            var pressed = info.KeysPressed.Where(k => k.Character != 0);
+            if (pressed.Any()) {
+                char c = pressed.First().Character;
+                var p = keyCursor ?? model.cursor;
+                if(sprite.InBounds(p)) {
+                    if (c != 0) {
+                        var layer = sprite.layers[0];
+                        var cg = new ColoredGlyph(brush.foreground, brush.background, c);
+                        var action = new SingleEdit(p, layer, cg);
+                        model.AddAction(action);
+                        ticks = 15;
+                        //keyCursor += new Point(1, 0);
+                    }
                 }
+
+            } else if (info.IsKeyPressed(Back)) {
+                var layer = sprite.layers[0];
+                var p = keyCursor ?? model.cursor;
+                var action = new SingleEdit(p, layer, new ColoredGlyph(Color.Transparent, Color.Transparent, ' '));
+                model.AddAction(action);
+                ticks = 15;
+
             }
         }
         public void ProcessMouse(MouseScreenObjectState state) {
             if(state.Mouse.LeftButtonDown) {
-                margin = keyCursor = model.cursor;
+                keyCursor = margin = model.cursor;
             }
         }
     }
@@ -506,10 +579,10 @@ namespace ASECII {
                 if (start != null) {
                     end = model.cursor;
 
-                    int leftX = Math.Max(start.Value.X, end.X);
-                    int width = leftX - Math.Min(start.Value.X, end.X);
-                    int topY = Math.Max(start.Value.Y, end.Y);
-                    int height = topY - Math.Min(start.Value.Y, end.Y);
+                    int leftX = Math.Min(start.Value.X, end.X);
+                    int width = Math.Max(start.Value.X, end.X) - leftX;
+                    int topY = Math.Min(start.Value.Y, end.Y);
+                    int height = Math.Max(start.Value.Y, end.Y) - topY;
                     rect = new Rectangle(leftX, topY, width, height);
                 } else if(!prevLeft) {
                     start = model.cursor;

@@ -9,10 +9,12 @@ using System.Threading.Tasks;
 namespace ASECII {
     class GlyphMenu : SadConsole.Console {
         SpriteModel spriteModel;
+        Action brushChanged;
         bool prevLeft;
 
-        public GlyphMenu(int width, int height, SpriteModel spriteModel) : base(width, height) {
+        public GlyphMenu(int width, int height, SpriteModel spriteModel, Action brushChanged) : base(width, height) {
             this.spriteModel = spriteModel;
+            this.brushChanged = brushChanged;
         }
 
         public override bool ProcessMouse(MouseScreenObjectState state) {
@@ -22,6 +24,7 @@ namespace ASECII {
                     if (!prevLeft && state.Mouse.LeftButtonDown) {
                         if (spriteModel.brush.glyph != index) {
                             spriteModel.brush.glyph = (char)index;
+                            brushChanged?.Invoke();
                         } else {
                             //spriteModel.glyph = null;
                         }

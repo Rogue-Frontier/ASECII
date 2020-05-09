@@ -15,6 +15,7 @@ namespace ASECII {
         public PaletteMenu(int width, int height, SpriteModel spriteModel, PaletteModel paletteModel, Action brushChanged) : base(width, height) {
             this.spriteModel = spriteModel;
             this.paletteModel = paletteModel;
+            this.brushChanged = brushChanged;
         }
         public override bool ProcessMouse(MouseScreenObjectState state) {
             if(state.IsOnScreenObject) {
@@ -42,10 +43,10 @@ namespace ASECII {
                                 paletteModel.backgroundIndex = null;
                                 spriteModel.brush.background = Color.Transparent;
                             }
-
+                            brushChanged?.Invoke();
                         }
-                        brushChanged?.Invoke();
                     }
+                    
                 }
             }
             prevLeft = state.Mouse.LeftButtonDown;
