@@ -28,7 +28,6 @@ namespace ASECII {
             }, () => {
                 tileModel.AddTile(model.brush.cell);
                 tileModel.UpdateIndexes(model);
-
                 tileButton.UpdateActive();
             }) {
                 Position = new Point(15, 3),
@@ -37,7 +36,7 @@ namespace ASECII {
             };
             CellButton foregroundButton = null, backgroundButton = null;
             foregroundButton = new CellButton(() => {
-                return !paletteModel.paletteSet.Contains(model.brush.foreground);
+                return paletteModel.foregroundIndex == null;
             }, () => {
                 paletteModel.AddColor(model.brush.foreground);
                 paletteModel.UpdateIndexes(model);
@@ -49,7 +48,7 @@ namespace ASECII {
                 UseMouse = true
             };
             backgroundButton = new CellButton(() => {
-                return !paletteModel.paletteSet.Contains(model.brush.background);
+                return paletteModel.backgroundIndex == null;
             }, () => {
                 paletteModel.AddColor(model.brush.background);
                 paletteModel.UpdateIndexes(model);
@@ -74,12 +73,12 @@ namespace ASECII {
                 UseMouse = true
             };
             var tileMenu = new TileMenu(16, 8, model, tileModel, () => {
+                tileModel.UpdateIndexes(model);
                 tileButton.UpdateActive();
+                
+                paletteModel.UpdateIndexes(model);
                 foregroundButton.UpdateActive();
                 backgroundButton.UpdateActive();
-                
-                tileModel.UpdateIndexes(model);
-                paletteModel.UpdateIndexes(model);
 
                 pickerModel.UpdateColors();
                 pickerModel.UpdateBrushPoints(paletteModel);
@@ -90,19 +89,20 @@ namespace ASECII {
                 UseMouse = true
             };
             var glyphMenu = new GlyphMenu(16, 16, model, () => {
-                tileButton.UpdateActive();
                 tileModel.UpdateIndexes(model);
+                tileButton.UpdateActive();
             }) {
                 Position = new Point(0, 8),
                 FocusOnMouseClick = true,
                 UseMouse = true
             };
             var paletteMenu = new PaletteMenu(16, 4, model, paletteModel, () => {
+                tileModel.UpdateIndexes(model);
                 tileButton.UpdateActive();
+
                 foregroundButton.UpdateActive();
                 backgroundButton.UpdateActive();
 
-                tileModel.UpdateIndexes(model);
                 pickerModel.UpdateBrushPoints(paletteModel);
 
                 pickerModel.UpdateColors();
@@ -115,12 +115,12 @@ namespace ASECII {
             };
 
             var pickerMenu = new PickerMenu(16, 16, model, pickerModel, () => {
+                tileModel.UpdateIndexes(model);
                 tileButton.UpdateActive();
+
+                paletteModel.UpdateIndexes(model);
                 foregroundButton.UpdateActive();
                 backgroundButton.UpdateActive();
-
-                tileModel.UpdateIndexes(model);
-                paletteModel.UpdateIndexes(model);
             }) {
                 Position = new Point(0, 28),
                 FocusOnMouseClick = true,
@@ -576,7 +576,8 @@ namespace ASECII {
         }
         public void ProcessMouse(MouseScreenObjectState state) {
             if(state.Mouse.LeftButtonDown) {
-                if (start != null) {
+
+                if (prevLeft) {
                     end = model.cursor;
 
                     int leftX = Math.Min(start.Value.X, end.X);
@@ -584,7 +585,7 @@ namespace ASECII {
                     int topY = Math.Min(start.Value.Y, end.Y);
                     int height = Math.Max(start.Value.Y, end.Y) - topY;
                     rect = new Rectangle(leftX, topY, width, height);
-                } else if(!prevLeft) {
+                } else {
                     start = model.cursor;
                     rect = new Rectangle(start.Value, new Point(0, 0));
                 }
