@@ -513,24 +513,26 @@ namespace ASECII {
 
         public void ProcessMouse(MouseScreenObjectState state) {
             glyph = (char)((glyph + state.Mouse.ScrollWheelValueChange / 120 + 255) % 255);
-            if (state.Mouse.LeftButtonDown) {
-                var prev = model.prevCell;
-                var offset = (model.cursor - prev);
-                var length = offset.Length();
-                for (int i = 0; i < length; i++) {
-                    
-                    var p = prev + new Point((int)(i * offset.X / length), (int)(i * offset.Y / length));
-                    if (model.IsEditable(p)) {
+            if(state.IsOnScreenObject) {
+                if (state.Mouse.LeftButtonDown) {
+                    var prev = model.prevCell;
+                    var offset = (model.cursor - prev);
+                    var length = offset.Length();
+                    for (int i = 0; i < length; i++) {
+
+                        var p = prev + new Point((int)(i * offset.X / length), (int)(i * offset.Y / length));
+                        if (model.IsEditable(p)) {
+                            var layer = model.sprite.layers[0];
+                            var action = new SingleEdit(p, layer, model.brush.cell);
+                            model.AddAction(action);
+                        }
+                    }
+
+                    if (model.IsEditable(model.cursor)) {
                         var layer = model.sprite.layers[0];
-                        var action = new SingleEdit(p, layer, model.brush.cell);
+                        var action = new SingleEdit(model.cursor, layer, model.brush.cell);
                         model.AddAction(action);
                     }
-                }
-
-                if (model.IsEditable(model.cursor)) {
-                    var layer = model.sprite.layers[0];
-                    var action = new SingleEdit(model.cursor, layer, model.brush.cell);
-                    model.AddAction(action);
                 }
             }
         }
@@ -594,8 +596,10 @@ namespace ASECII {
             }
         }
         public void ProcessMouse(MouseScreenObjectState state) {
-            if(state.Mouse.LeftButtonDown) {
-                keyCursor = margin = model.cursor;
+            if(state.IsOnScreenObject) {
+                if (state.Mouse.LeftButtonDown) {
+                    keyCursor = margin = model.cursor;
+                }
             }
         }
     }
@@ -610,32 +614,35 @@ namespace ASECII {
             this.model = model;
         }
         public void ProcessMouse(MouseScreenObjectState state) {
-            if(state.Mouse.LeftButtonDown) {
+            if(state.IsOnScreenObject) {
+                if (state.Mouse.LeftButtonDown) {
 
-                if (prevLeft) {
-                    if(end != model.cursor) {
-                        end = model.cursor;
+                    if (prevLeft) {
+                        if (end != model.cursor) {
+                            end = model.cursor;
 
-                        int leftX = Math.Min(start.Value.X, end.X);
-                        int width = Math.Max(start.Value.X, end.X) - leftX;
-                        int topY = Math.Min(start.Value.Y, end.Y);
-                        int height = Math.Max(start.Value.Y, end.Y) - topY;
-                        rect = new Rectangle(leftX, topY, width, height);
+                            int leftX = Math.Min(start.Value.X, end.X);
+                            int width = Math.Max(start.Value.X, end.X) - leftX;
+                            int topY = Math.Min(start.Value.Y, end.Y);
+                            int height = Math.Max(start.Value.Y, end.Y) - topY;
+                            rect = new Rectangle(leftX, topY, width, height);
 
-                        //var t = model.ticks % 30;
-                        //model.ticksSelect = t < 15 ? t - 15 : t - 30;
-                        model.ticksSelect = -15;
+                            //var t = model.ticks % 30;
+                            //model.ticksSelect = t < 15 ? t - 15 : t - 30;
+                            model.ticksSelect = -15;
+                        }
+                    } else {
+                        start = model.cursor;
+                        rect = new Rectangle(start.Value, new Point(0, 0));
                     }
-                } else {
-                    start = model.cursor;
-                    rect = new Rectangle(start.Value, new Point(0, 0));
+                } else if (prevLeft) {
+                    if (start == end) {
+                        rect = null;
+                    }
                 }
-            } else if(prevLeft) {
-                if(start == end) {
-                    rect = null;
-                }
+                prevLeft = state.Mouse.LeftButtonDown;
             }
-            prevLeft = state.Mouse.LeftButtonDown;
+            
         }
 
     }
