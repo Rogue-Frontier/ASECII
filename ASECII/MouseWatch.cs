@@ -16,7 +16,7 @@ namespace ASECII {
             Up = ButtonStates.PrevUp & ButtonStates.NowUp,
             Pressed = ButtonStates.PrevUp & ButtonStates.NowDown,
             Held = ButtonStates.PrevDown & ButtonStates.NowDown,
-            Released = ButtonStates.PrevDown & ButtonStates.NowUp;
+            Released = ButtonStates.PrevDown & ButtonStates.NowUp
         }
         MouseState left;
         MouseState right;
