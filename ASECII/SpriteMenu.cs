@@ -131,6 +131,14 @@ namespace ASECII {
                 FocusOnMouseClick = true,
                 UseMouse = true
             };
+
+            tileModel.UpdateIndexes(model);
+            tileButton.UpdateActive();
+
+            paletteModel.UpdateIndexes(model);
+            foregroundButton.UpdateActive();
+            backgroundButton.UpdateActive();
+
             this.Children.Add(tileMenu);
             this.Children.Add(tileButton);
             this.Children.Add(spriteMenu);
