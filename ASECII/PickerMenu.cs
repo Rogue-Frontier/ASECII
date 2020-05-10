@@ -12,6 +12,10 @@ namespace ASECII {
         SpriteModel model;
         PickerModel colorPicker;
         Action brushChanged;
+        bool prevLeft;
+        bool allowLeft;
+        bool prevRight;
+        bool allowRight;
         public PickerMenu(int width, int height, SpriteModel model, PickerModel colorPicker, Action brushChanged) : base(width, height) {
             this.model = model;
             this.colorPicker = colorPicker;
@@ -21,19 +25,37 @@ namespace ASECII {
             return base.ProcessKeyboard(info);
         }
         public override bool ProcessMouse(MouseScreenObjectState state) {
-            var (x, y) = state.SurfaceCellPosition;
             if (state.IsOnScreenObject) {
+
+                //If the mouse enters the screen held but the hold started from outside the screen, we ignore it
+                var (x, y) = state.SurfaceCellPosition;
                 var colors = colorPicker.colors;
                 if (state.Mouse.LeftButtonDown) {
-                    model.brush.foreground = colors[x, y];
-                    colorPicker.foregroundPoint = new Point(x, y);
+                    allowLeft = allowLeft || !prevLeft;
+                    if (allowLeft) {
+                        model.brush.foreground = colors[x, y];
+                        colorPicker.foregroundPoint = new Point(x, y);
+                    }
+                } else {
+                    allowLeft = false;
                 }
                 if (state.Mouse.RightButtonDown) {
-                    model.brush.background = colors[x, y];
-                    colorPicker.backgroundPoint = new Point(x, y);
+                    allowRight = allowRight || !prevRight;
+                    if(allowRight) {
+                        model.brush.background = colors[x, y];
+                        colorPicker.backgroundPoint = new Point(x, y);
+                    }
+                } else {
+                    allowRight = false;
                 }
                 brushChanged?.Invoke();
+            } else {
+                allowLeft = allowLeft && state.Mouse.LeftButtonDown;
+                allowRight = allowRight && state.Mouse.RightButtonDown;
             }
+            
+            prevLeft = state.Mouse.LeftButtonDown;
+            prevRight = state.Mouse.RightButtonDown;
             return base.ProcessMouse(state);
         }
         public override void Draw(TimeSpan timeElapsed) {
