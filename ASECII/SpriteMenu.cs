@@ -497,6 +497,7 @@ namespace ASECII {
     }
     class BrushMode {
         SpriteModel model;
+        public MouseWatch mouse;
         public char glyph = 'A';
         public Color foreground = Color.Red;
         public Color background = Color.Black;
@@ -509,12 +510,14 @@ namespace ASECII {
         }
         public BrushMode(SpriteModel model) {
             this.model = model;
+            mouse = new MouseWatch();
         }
 
         public void ProcessMouse(MouseScreenObjectState state) {
+            mouse.Update(state);
             glyph = (char)((glyph + state.Mouse.ScrollWheelValueChange / 120 + 255) % 255);
             if(state.IsOnScreenObject) {
-                if (state.Mouse.LeftButtonDown) {
+                if (state.Mouse.LeftButtonDown && mouse.leftPressedOnScreen) {
                     var prev = model.prevCell;
                     var offset = (model.cursor - prev);
                     var length = offset.Length();

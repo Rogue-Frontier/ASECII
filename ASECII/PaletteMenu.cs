@@ -8,49 +8,58 @@ using System.Linq;
 namespace ASECII {
     class PaletteMenu : SadConsole.Console {
         SpriteModel spriteModel;
+        MouseWatch mouse;
         PaletteModel paletteModel;
         Action brushChanged;
-        bool prevLeft;
-        bool prevRight;
+
         public PaletteMenu(int width, int height, SpriteModel spriteModel, PaletteModel paletteModel, Action brushChanged) : base(width, height) {
             this.spriteModel = spriteModel;
+            this.mouse = new MouseWatch();
             this.paletteModel = paletteModel;
             this.brushChanged = brushChanged;
         }
         public override bool ProcessMouse(MouseScreenObjectState state) {
+            mouse.Update(state);
             if(state.IsOnScreenObject) {
                 int index = (state.SurfaceCellPosition.X) + (state.SurfaceCellPosition.Y * Width);
                 if (index > -1 && index < paletteModel.palette.Count) {
-                    bool pressLeft = !prevLeft && state.Mouse.LeftButtonDown;
-                    var pressRight = !prevRight && state.Mouse.RightButtonDown;
-                    if(pressLeft || pressRight) {
-                        if (pressLeft) {
+                    var left = mouse.leftPressedOnScreen && mouse.nowLeft;
+                    var right = mouse.rightPressedOnScreen && mouse.nowRight;
+                    if (left || right) {
+                        if (left) {
                             if (paletteModel.foregroundIndex != index) {
-                                paletteModel.foregroundIndex = index;
-                                spriteModel.brush.foreground = paletteModel.palette[index];
-                            } else {
+                                //Don't want the color to flash between index and transparent
+                                if(mouse.left == MouseState.Pressed || (mouse.left == MouseState.Held && paletteModel.foregroundIndex != null)) {
+                                    paletteModel.foregroundIndex = index;
+                                    spriteModel.brush.foreground = paletteModel.palette[index];
+                                }
+
+                            } else if(mouse.left == MouseState.Pressed) {
+                                //Press the same color to deselect
                                 paletteModel.foregroundIndex = null;
                                 spriteModel.brush.foreground = Color.Transparent;
                             }
-
                         }
-
-                        if (pressRight) {
+                        if (right) {
                             if (paletteModel.backgroundIndex != index) {
-                                paletteModel.backgroundIndex = index;
-                                spriteModel.brush.background = paletteModel.palette[index];
-                            } else {
+                                //Don't want the color to flash between index and transparent
+                                if (mouse.right == MouseState.Pressed || (mouse.right == MouseState.Held && paletteModel.backgroundIndex != null)) {
+                                    paletteModel.backgroundIndex = index;
+                                    spriteModel.brush.background = paletteModel.palette[index];
+                                }
+
+                            } else if (mouse.right == MouseState.Pressed) {
+                                //Press the same color to deselect
                                 paletteModel.backgroundIndex = null;
                                 spriteModel.brush.background = Color.Transparent;
                             }
-                            brushChanged?.Invoke();
                         }
+
+                        brushChanged?.Invoke();
                     }
                     
                 }
             }
-            prevLeft = state.Mouse.LeftButtonDown;
-            prevRight = state.Mouse.RightButtonDown;
 
             return base.ProcessMouse(state);
         }
