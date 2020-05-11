@@ -52,11 +52,11 @@ namespace ASECII {
         }
     }
     class TileModel {
-        public List<ColoredGlyph> tiles = new List<ColoredGlyph>();
-        public HashSet<ColoredGlyph> tileset = new HashSet<ColoredGlyph>();
+        public List<TileValue> tiles = new List<TileValue>();
+        public HashSet<TileValue> tileset = new HashSet<TileValue>();
         public int? brushIndex;
 
-        public void AddTile(ColoredGlyph c) {
+        public void AddTile(TileValue c) {
             tiles.Add(c);
             tileset.Add(c);
         }

@@ -189,8 +189,8 @@ namespace ASECII {
                     int ax = hx - x;
                     int ay = hy - y;
                     if(model.sprite.InBounds(pos)) {
-                        var cg = model.sprite.preview[pos];
-                        this.Print(ax, ay, cg);
+                        var tile = model.sprite.preview[pos.X, pos.Y];
+                        this.Print(ax, ay, tile.cg);
                     } else {
                         var c = ((ax + ay) % 2 == 0) ? black : dark;
                         /*
@@ -456,9 +456,9 @@ namespace ASECII {
     class SingleEdit {
         public Point cursor;
         public ILayer layer;
-        public ColoredGlyph prev;
-        public ColoredGlyph next;
-        public SingleEdit(Point cursor, ILayer layer, ColoredGlyph next) {
+        public TileRef prev;
+        public TileRef next;
+        public SingleEdit(Point cursor, ILayer layer, TileRef next) {
             this.cursor = cursor;
             this.layer = layer;
             this.prev = layer[cursor];
@@ -506,14 +506,14 @@ namespace ASECII {
     class BrushMode {
         SpriteModel model;
         public MouseWatch mouse;
-        public char glyph = 'A';
+        public int glyph = 'A';
         public Color foreground = Color.Red;
         public Color background = Color.Black;
-        public ColoredGlyph cell {
-            get => new ColoredGlyph(foreground, background, glyph); set {
+        public TileValue cell {
+            get => new TileValue(foreground, background, glyph); set {
                 foreground = value.Foreground;
                 background = value.Background;
-                glyph = value.GlyphCharacter;
+                glyph = value.Glyph;
             }
         }
         public BrushMode(SpriteModel model) {
@@ -589,8 +589,8 @@ namespace ASECII {
                 if(model.IsEditable(p)) {
                     if (c != 0) {
                         var layer = sprite.layers[0];
-                        var cg = new ColoredGlyph(brush.foreground, brush.background, c);
-                        var action = new SingleEdit(p, layer, cg);
+                        var tile = new TileValue(brush.foreground, brush.background, c);
+                        var action = new SingleEdit(p, layer, tile);
                         model.AddAction(action);
                         ticks = 15;
                         //keyCursor += new Point(1, 0);
@@ -600,7 +600,7 @@ namespace ASECII {
             } else if (info.IsKeyPressed(Back)) {
                 var layer = sprite.layers[0];
                 var p = keyCursor ?? model.cursor;
-                var action = new SingleEdit(p, layer, new ColoredGlyph(Color.Transparent, Color.Transparent, ' '));
+                var action = new SingleEdit(p, layer, new TileValue(Color.Transparent, Color.Transparent, ' '));
                 model.AddAction(action);
                 ticks = 15;
 
