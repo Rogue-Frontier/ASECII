@@ -361,7 +361,8 @@ namespace ASECII {
         public bool IsEditable(Point p) {
             bool result = sprite.InBounds(p);
             if(select.rect.HasValue) {
-                result = select.rect.Value.Contains(p);
+                var r = select.rect.Value;
+                result = result && p.X >= r.X && p.X <= r.X + r.Width && p.Y >= r.Y && p.Y <= r.Y + r.Height;
                 
             }
             return result;
