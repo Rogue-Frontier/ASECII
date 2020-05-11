@@ -317,7 +317,7 @@ namespace ASECII {
         }
         public override bool ProcessMouse(MouseScreenObjectState state) {
             IsFocused = true;
-            model.ProcessMouse(state);
+            model.ProcessMouse(state, IsMouseOver);
             return base.ProcessMouse(state);
         }
     }
@@ -417,7 +417,7 @@ namespace ASECII {
                 }
             }
         }
-        public void ProcessMouse(MouseScreenObjectState state) {
+        public void ProcessMouse(MouseScreenObjectState state, bool IsMouseOver) {
             cursorScreen = state.SurfaceCellPosition;
             cursor = cursorScreen + camera;
             if (pan.allowPan) {
@@ -425,7 +425,7 @@ namespace ASECII {
             } else {
                 switch (mode) {
                     case Mode.Edit:
-                        brush.ProcessMouse(state);
+                        brush.ProcessMouse(state, IsMouseOver);
                         break;
                     case Mode.Select:
                         select.ProcessMouse(state);
@@ -521,8 +521,8 @@ namespace ASECII {
             mouse = new MouseWatch();
         }
 
-        public void ProcessMouse(MouseScreenObjectState state) {
-            mouse.Update(state);
+        public void ProcessMouse(MouseScreenObjectState state, bool IsMouseOver) {
+            mouse.Update(state, IsMouseOver);
             glyph = (char)((glyph + state.Mouse.ScrollWheelValueChange / 120 + 255) % 255);
             if(state.IsOnScreenObject) {
                 if (state.Mouse.LeftButtonDown && mouse.leftPressedOnScreen) {

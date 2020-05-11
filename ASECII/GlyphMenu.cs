@@ -19,7 +19,7 @@ namespace ASECII {
         }
 
         public override bool ProcessMouse(MouseScreenObjectState state) {
-            mouse.Update(state);
+            mouse.Update(state, IsMouseOver);
             if (state.IsOnScreenObject && state.Mouse.LeftButtonDown && mouse.leftPressedOnScreen) {
                 int index = (state.SurfaceCellPosition.X) + (state.SurfaceCellPosition.Y * Width);
                 if (index < 256 && spriteModel.brush.glyph != index) {

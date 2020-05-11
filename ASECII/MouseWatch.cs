@@ -29,7 +29,7 @@ namespace ASECII {
         public bool prevRight;
         public bool nowLeft;
         public bool nowRight;
-        public void Update(MouseScreenObjectState state) {
+        public void Update(MouseScreenObjectState state, bool IsMouseOver) {
             prevLeft = nowLeft;
             prevRight = nowRight;
             nowLeft = state.Mouse.LeftButtonDown;
@@ -38,11 +38,11 @@ namespace ASECII {
             left = !prevLeft ? (!nowLeft ? MouseState.Up : MouseState.Pressed) : (nowLeft ? MouseState.Held : MouseState.Released);
             right = !prevRight ? (!nowRight ? MouseState.Up : MouseState.Pressed) : (nowRight ? MouseState.Held : MouseState.Released);
             if(left == MouseState.Pressed) {
-                leftPressedOnScreen = state.IsOnScreenObject;
+                leftPressedOnScreen = IsMouseOver;
                 leftPressedPos = state.SurfaceCellPosition;
             }
             if(right == MouseState.Pressed) {
-                rightPressedOnScreen = state.IsOnScreenObject;
+                rightPressedOnScreen = IsMouseOver;
                 rightPressedPos = state.SurfaceCellPosition;
             }
         }

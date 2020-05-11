@@ -10,32 +10,27 @@ namespace ASECII {
         Active active;
         bool isActive;
         Click click;
-        bool prevLeft;
-        bool pressed;
+        MouseWatch mouse;
         public CellButton(Active active, Click click) : base(1, 1) {
             this.active = active;
             this.click = click;
+            this.mouse = new MouseWatch();
         }
         public void UpdateActive() {
             isActive = active();
         }
         public override bool ProcessMouse(MouseScreenObjectState state) {
+            mouse.Update(state, IsMouseOver);
             if(isActive && IsMouseOver) {
-                if(state.Mouse.LeftButtonDown) {
-                    if(!prevLeft) {
-                        pressed = true;
-                    }
-                } else if (pressed && !state.Mouse.LeftButtonDown) {
-                    pressed = false;
+                if(mouse.leftPressedOnScreen && mouse.left == MouseState.Released) {
                     click();
                 }
 
             }
-            prevLeft = state.Mouse.LeftButtonDown;
             return base.ProcessMouse(state);
         }
         public override void Draw(TimeSpan timeElapsed) {
-            if(pressed) {
+            if(IsMouseOver && mouse.nowLeft && mouse.leftPressedOnScreen) {
                 this.Print(0, 0, "+", Color.White, Color.Black);
             } else if(isActive) {
                 this.Print(0, 0, "+", Color.Black, IsMouseOver ? Color.Yellow : Color.White);

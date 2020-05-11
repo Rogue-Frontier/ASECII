@@ -23,7 +23,7 @@ namespace ASECII {
             return base.ProcessKeyboard(info);
         }
         public override bool ProcessMouse(MouseScreenObjectState state) {
-            mouse.Update(state);
+            mouse.Update(state, IsMouseOver);
             if (state.IsOnScreenObject) {
 
                 //If the mouse enters the screen held but the hold started from outside the screen, we ignore it

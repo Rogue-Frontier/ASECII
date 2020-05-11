@@ -19,7 +19,7 @@ namespace ASECII {
             this.brushChanged = brushChanged;
         }
         public override bool ProcessMouse(MouseScreenObjectState state) {
-            mouse.Update(state);
+            mouse.Update(state, IsMouseOver);
             if(state.IsOnScreenObject) {
                 int index = (state.SurfaceCellPosition.X) + (state.SurfaceCellPosition.Y * Width);
                 if (index > -1 && index < paletteModel.palette.Count) {
