@@ -180,7 +180,7 @@ namespace ASECII {
 
             var black = Color.Black;
             var dark = new Color(25, 25, 25);
-
+            model.sprite.UpdatePreview();
             var center = new Point(hx, hy);
             for (int x = -hx; x < hx+1; x++) {
                 for(int y = -hy; y < hy+1; y++) {
@@ -189,7 +189,7 @@ namespace ASECII {
                     int ax = hx - x;
                     int ay = hy - y;
                     if(model.sprite.InBounds(pos)) {
-                        var cg = model.sprite[pos];
+                        var cg = model.sprite.preview[pos];
                         this.Print(ax, ay, cg);
                     } else {
                         var c = ((ax + ay) % 2 == 0) ? black : dark;
@@ -455,10 +455,10 @@ namespace ASECII {
     }
     class SingleEdit {
         public Point cursor;
-        public Layer layer;
+        public ILayer layer;
         public ColoredGlyph prev;
         public ColoredGlyph next;
-        public SingleEdit(Point cursor, Layer layer, ColoredGlyph next) {
+        public SingleEdit(Point cursor, ILayer layer, ColoredGlyph next) {
             this.cursor = cursor;
             this.layer = layer;
             this.prev = layer[cursor];
