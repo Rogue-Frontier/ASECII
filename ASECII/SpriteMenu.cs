@@ -209,8 +209,7 @@ namespace ASECII {
                 switch (model.mode) {
                     case Mode.Edit:
                         if (model.ticksSelect % 30 < 15) {
-                            var r = model.select.rect ?? Rectangle.Empty;
-                            if (r != Rectangle.Empty) {
+                            if (model.select.GetAdjustedRect(out Rectangle r)) {
                                 DrawRect(r);
                             }
                         }
@@ -225,8 +224,7 @@ namespace ASECII {
                     case Mode.Keyboard:
                         var c = model.brush.cell;
                         if(model.ticksSelect%30 < 15) {
-                            var r = model.select.rect ?? Rectangle.Empty;
-                            if (r != Rectangle.Empty) {
+                            if (model.select.GetAdjustedRect(out Rectangle r)) {
                                 DrawRect(r);
                             }
                         }
@@ -238,8 +236,7 @@ namespace ASECII {
                         break;
                     case Mode.Select:
                         if (model.ticksSelect % 20 < 10) {
-                            var r = model.select.rect ?? Rectangle.Empty;
-                            if (r != Rectangle.Empty) {
+                            if (model.select.GetAdjustedRect(out Rectangle r)) {
                                 DrawRect(r);
                             } else {
                                 var p = model.cursorScreen;
@@ -364,8 +361,8 @@ namespace ASECII {
         public bool IsEditable(Point p) {
             bool result = sprite.InBounds(p);
             if(select.rect.HasValue) {
-                var rect = select.rect.Value;
-                result = result && p.X >= rect.X && p.Y >= rect.Y && p.X <= rect.X + rect.Width && p.Y <= rect.Y + rect.Height;
+                result = select.rect.Value.Contains(p);
+                
             }
             return result;
         }
@@ -655,6 +652,13 @@ namespace ASECII {
             }
             
         }
-
+        public bool GetAdjustedRect(out Rectangle r) {
+            if(rect.HasValue) {
+                r = rect.Value.Translate(new Point() - model.camera);
+            } else {
+                r = Rectangle.Empty;
+            }
+            return rect.HasValue;
+        }
     }
 }
