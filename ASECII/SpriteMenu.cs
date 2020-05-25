@@ -1,19 +1,24 @@
-﻿using SadConsole;
+﻿using Newtonsoft.Json;
+using SadConsole;
 using SadConsole.Input;
+using SadConsole.UI;
+using SadConsole.UI.Controls;
 using SadRogue.Primitives;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using static SadConsole.Input.Keys;
 
 namespace ASECII {
-    class EditorMain : SadConsole.Console {
+    class EditorMain : ControlsConsole {
         SpriteModel model;
-        public EditorMain(int width, int height) :base(width, height) {
+        public EditorMain(int width, int height, SpriteModel model) :base(width, height) {
             UseKeyboard = true;
             UseMouse = true;
-            model = new SpriteModel(32, 32);
-            var tileModel = new TileModel();
+
+            this.model = model;
+            var tileModel = model.tiles;
             var paletteModel = new PaletteModel();
             var pickerModel = new PickerModel(16, 16, model);
 
@@ -24,7 +29,7 @@ namespace ASECII {
             CellButton tileButton = null;
             tileButton = new CellButton(() => {
                 var c = model.brush.cell;
-                return !tileModel.tiles.Any(t => t.Background == c.Background && t.Foreground == c.Foreground && t.Glyph == c.Glyph);
+                return tileModel.brushIndex == null;
             }, () => {
                 tileModel.AddTile(model.brush.cell);
                 tileModel.UpdateIndexes(model);
@@ -309,6 +314,10 @@ namespace ASECII {
             }
         }
         public override bool ProcessKeyboard(Keyboard info) {
+            if(info.IsKeyPressed(S) && info.IsKeyDown(LeftControl)) {
+                //File.WriteAllText(Path.Combine(Environment.CurrentDirectory, Path.GetFileName(Path.GetTempFileName())), JsonConvert.SerializeObject(model));
+                this.Children.Add(new SaveMenu(Width, Height, model));
+            }
             model.ProcessKeyboard(info);
             return base.ProcessKeyboard(info);
         }
@@ -327,8 +336,10 @@ namespace ASECII {
         Stack<SingleEdit> Undo;
         Stack<SingleEdit> Redo;
 
+        public string filepath;
         public Sprite sprite = new Sprite(16, 16);
 
+        public TileModel tiles;
         public BrushMode brush;
         public KeyboardMode keyboard;
         public SelectMode select;
@@ -350,6 +361,7 @@ namespace ASECII {
         public SpriteModel(int width, int height) {
             this.width = width;
             this.height = height;
+            tiles = new TileModel();
             brush = new BrushMode(this);
             keyboard = new KeyboardMode(this);
             select = new SelectMode(this);
@@ -368,7 +380,22 @@ namespace ASECII {
             return result;
         }
         public void ProcessKeyboard(Keyboard info) {
-
+            if (info.IsKeyDown(LeftControl) && info.IsKeyUp(LeftShift) && info.IsKeyPressed(Z)) {
+                if (Undo.Any()) {
+                    var u = Undo.Pop();
+                    u.Undo();
+                    Redo.Push(u);
+                }
+                return;
+            }
+            if (info.IsKeyDown(LeftControl) && info.IsKeyDown(LeftShift) && info.IsKeyPressed(Z)) {
+                if (Redo.Any()) {
+                    var u = Redo.Pop();
+                    u.Do();
+                    Undo.Push(u);
+                }
+                return;
+            }
             if (mode == Mode.Keyboard) {
                 if(info.IsKeyPressed(Escape)) {
                     mode = Mode.Edit;
@@ -391,23 +418,8 @@ namespace ASECII {
                     keyboard.keyCursor = null;
                     //keyboard.keyCursor = cursor;
                     //keyboard.margin = cursor;
-                } else if(info.IsKeyPressed(S)) {
+                } else if(info.IsKeyPressed(S) && !info.IsKeyDown(LeftControl)) {
                     mode = Mode.Select;
-                }
-
-                if (info.IsKeyDown(LeftControl) && info.IsKeyUp(LeftShift) && info.IsKeyPressed(Z)) {
-                    if (Undo.Any()) {
-                        var u = Undo.Pop();
-                        u.Undo();
-                        Redo.Push(u);
-                    }
-                }
-                if (info.IsKeyDown(LeftControl) && info.IsKeyDown(LeftShift) && info.IsKeyPressed(Z)) {
-                    if (Redo.Any()) {
-                        var u = Redo.Pop();
-                        u.Do();
-                        Undo.Push(u);
-                    }
                 }
 
                 if (pan.allowPan) {
@@ -531,19 +543,26 @@ namespace ASECII {
 
                         var p = prev + new Point((int)(i * offset.X / length), (int)(i * offset.Y / length));
                         if (model.IsEditable(p)) {
-                            var layer = model.sprite.layers[0];
-                            var action = new SingleEdit(p, layer, model.brush.cell);
-                            model.AddAction(action);
+                            Place(p);
                         }
                     }
 
                     if (model.IsEditable(model.cursor)) {
-                        var layer = model.sprite.layers[0];
-                        var action = new SingleEdit(model.cursor, layer, model.brush.cell);
-                        model.AddAction(action);
+                        Place(model.cursor);
                     }
                 }
             }
+        }
+        void Place(Point p) {
+            var layer = model.sprite.layers[0];
+            SingleEdit action;
+            if(model.tiles.brushIndex.HasValue) {
+                action = new SingleEdit(p, layer, model.tiles.brushTile);
+            } else {
+                action = new SingleEdit(p, layer, model.brush.cell);
+            }
+            
+            model.AddAction(action);
         }
     }
     class KeyboardMode {

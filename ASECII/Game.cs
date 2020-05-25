@@ -25,7 +25,7 @@ namespace ASECII {
 
         private static void Init() {
             // Create your console
-            var firstConsole = new EditorMain(width, height);
+            var firstConsole = new EditorMain(width, height, new SpriteModel(32, 32));
 
             SadConsole.Global.Screen = firstConsole;
             firstConsole.FocusOnMouseClick = true;
