@@ -27,26 +27,29 @@ namespace ASECII {
             IsFocused = true,
             CanFocus = true,
             };
-            /*
+            
             textbox.TextChanged += (e, args) => {
                 UpdateListing(textbox.Text);
             };
-            */
-            Add(textbox);
+            
+            this.ControlHostComponent.Add(textbox);
             UpdateListing("..");
             this.sprite = sprite;
         }
         public void UpdateListing(string filepath) {
-            listing.ForEach(b => Remove(b));
+            listing.ForEach(b => this.ControlHostComponent.Remove(b));
             listing.Clear();
-            int i = 0;
-
+            int i = 2;
+            if(string.IsNullOrWhiteSpace(filepath)) {
+                filepath = Environment.CurrentDirectory;
+            }
             if (Directory.Exists(filepath)) {
 
                 i++;
                 var b = new Button(this.Width - 2, 1) {
                     Position = new Point(0, i),
                     Text = "..",
+                    TextAlignment = HorizontalAlignment.Left
                 };
                 b.Click += (e, args) => {
                     textbox.Text = Directory.GetParent(filepath).FullName;
@@ -62,6 +65,7 @@ namespace ASECII {
                     var b = new Button(this.Width - 2, 1) {
                         Position = new Point(0, i),
                         Text = "..",
+                        TextAlignment = HorizontalAlignment.Left
                     };
                     b.Click += (e, args) => {
                         textbox.Text = Directory.GetParent(parent).FullName;
@@ -72,6 +76,9 @@ namespace ASECII {
                     ShowFiles(Directory.GetFiles(parent).Where(p => p.StartsWith(filepath)));
                 }
             }
+            foreach(var button in listing) {
+                this.ControlHostComponent.Add(button);
+            }
 
             void ShowDirectories(IEnumerable<string> directories) {
                 foreach (var directory in directories) {
@@ -79,6 +86,7 @@ namespace ASECII {
                     var b = new Button(this.Width - 2, 1) {
                         Position = new Point(0, i),
                         Text = directory,
+                        TextAlignment = HorizontalAlignment.Left
                     };
                     b.Click += (e, args) => {
                         textbox.Text = directory;
@@ -92,9 +100,10 @@ namespace ASECII {
                     var b = new Button(this.Width - 2, 1) {
                         Position = new Point(0, i),
                         Text = file,
+                        TextAlignment = HorizontalAlignment.Left
                     };
                     b.Click += (e, args) => {
-                        UpdateListing(file);
+                        textbox.Text = file;
                     };
                     listing.Add(b);
                 }

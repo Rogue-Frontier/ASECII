@@ -11,7 +11,7 @@ using System.Linq;
 using static SadConsole.Input.Keys;
 
 namespace ASECII {
-    class EditorMain : ControlsConsole {
+    class EditorMain : SadConsole.Console {
         SpriteModel model;
         public EditorMain(int width, int height, SpriteModel model) :base(width, height) {
             UseKeyboard = true;
@@ -316,7 +316,7 @@ namespace ASECII {
         public override bool ProcessKeyboard(Keyboard info) {
             if(info.IsKeyPressed(S) && info.IsKeyDown(LeftControl)) {
                 //File.WriteAllText(Path.Combine(Environment.CurrentDirectory, Path.GetFileName(Path.GetTempFileName())), JsonConvert.SerializeObject(model));
-                this.Children.Add(new SaveMenu(Width, Height, model));
+                SadConsole.Game.Instance.Screen = (new SaveMenu(Width, Height, model));
             }
             model.ProcessKeyboard(info);
             return base.ProcessKeyboard(info);
