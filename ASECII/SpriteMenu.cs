@@ -1,6 +1,8 @@
-﻿using Newtonsoft.Json;
+﻿using Microsoft.Xna.Framework.Content;
+using Newtonsoft.Json;
 using SadConsole;
 using SadConsole.Input;
+using SadConsole.SerializedTypes;
 using SadConsole.UI;
 using SadConsole.UI.Controls;
 using SadRogue.Primitives;
@@ -8,6 +10,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using static SadConsole.Input.Keys;
 
 namespace ASECII {
@@ -214,9 +217,12 @@ namespace ASECII {
                 switch (model.mode) {
                     case Mode.Edit:
                         if (model.ticksSelect % 30 < 15) {
-                            if (model.select.GetAdjustedRect(out Rectangle r)) {
+                            /*
+                            if (model.selectRect.GetAdjustedRect(out Rectangle r)) {
                                 DrawRect(r);
                             }
+                            */
+                            DrawSelection();
                         }
                         if ((model.ticks % 30) < 15) {
                             if (IsMouseOver) {
@@ -229,9 +235,12 @@ namespace ASECII {
                     case Mode.Keyboard:
                         var c = model.brush.cell;
                         if(model.ticksSelect%30 < 15) {
-                            if (model.select.GetAdjustedRect(out Rectangle r)) {
+                            /*
+                            if (model.selectRect.GetAdjustedRect(out Rectangle r)) {
                                 DrawRect(r);
                             }
+                            */
+                            DrawSelection();
                         }
                         if (model.ticks % 30 < 15) {
                             var p = (model.keyboard.keyCursor ?? model.cursor) - camera;
@@ -239,9 +248,9 @@ namespace ASECII {
                             //SetCellAppearance(hx - model.keyboard.margin.X + model.camera.X - 1, hy - model.keyboard.keyCursor.Y + model.camera.Y, new Cell(c.Foreground, c.Background, '>'));
                         }
                         break;
-                    case Mode.Select:
+                    case Mode.SelectRect:
                         if (model.ticksSelect % 20 < 10) {
-                            if (model.select.GetAdjustedRect(out Rectangle r)) {
+                            if (model.selectRect.GetAdjustedRect(out Rectangle r)) {
                                 DrawRect(r);
                             } else {
                                 var p = model.cursorScreen;
@@ -256,7 +265,32 @@ namespace ASECII {
             
 
             base.Draw(timeElapsed);
+            void DrawSelection() {
+                var all = model.selection.GetAll();
+                foreach(var point in all) {
+                    
+                    bool n = Contains(new Point(0, -1)), e = Contains(new Point(1, 0)), s = Contains(new Point(0, +1)), w = Contains(new Point(-1, 0)), ne = n && e, se = s && e, sw = s && w, nw = n && w;
+                    bool Contains(Point offset) => all.Contains(point + offset);
+                    var p = point - camera;
+                    if (!n && !e && !s && !w) {
+                        //Isolated cell
+                        this.SetCellAppearance(p.X, p.Y, new ColoredGlyph(Color.Transparent, model.brush.background, '+'));
+                        continue;
+                    } else if(n && e && s && w) {
+                        //Surrounded cell
+                        this.SetCellAppearance(p.X, p.Y, new ColoredGlyph(Color.Transparent, model.brush.background, ' '));
+                    } else {
+                        BoxGlyph g = new BoxGlyph {
+                            n = n && (!nw || !ne) ? Line.Single : Line.None,
+                            e = e && (!ne || !se) ? Line.Single : Line.None,
+                            s = s && (!sw || !se) ? Line.Single : Line.None,
+                            w = w && (!nw || !sw) ? Line.Single : Line.None,
 
+                        };
+                        DrawBox(p.X, p.Y, g);
+                    }
+                }
+            }
             void DrawRect(Rectangle r) {
                 var (left, top) = (r.X, r.Y);
 
@@ -271,11 +305,11 @@ namespace ASECII {
                 } else if (r.Width > 0) {
                     DrawSidesX(Line.Double);
                     DrawBox(left, top, new BoxGlyph { n = Line.Single, e = Line.Double, s = Line.Single });
-                    DrawBox(left + r.Width, top, new BoxGlyph { n = Line.Single, w = Line.Double, s = Line.Single });
+                    DrawBox(left + r.Width - 1, top, new BoxGlyph { n = Line.Single, w = Line.Double, s = Line.Single });
                 } else if (r.Height > 0) {
                     DrawSidesY(Line.Double);
                     DrawBox(left, top, new BoxGlyph { s = Line.Double, e = Line.Single, w = Line.Single });
-                    DrawBox(left, top + r.Height, new BoxGlyph { n = Line.Double, w = Line.Single, e = Line.Single });
+                    DrawBox(left, top + r.Height - 1, new BoxGlyph { n = Line.Double, w = Line.Single, e = Line.Single });
                 } else {
                     DrawBox(left, top, new BoxGlyph { n = Line.Single, e = Line.Single, s = Line.Single, w = Line.Single });
                 }
@@ -286,26 +320,26 @@ namespace ASECII {
                 }
                 void DrawCornerNE() {
                     //Right top
-                    DrawBox(left + r.Width, top, new BoxGlyph { w = Line.Single, s = Line.Single });
+                    DrawBox(left + r.Width - 1, top, new BoxGlyph { w = Line.Single, s = Line.Single });
                 }
                 void DrawCornerSW() {
                     //Left bottom
-                    DrawBox(left, top + r.Height, new BoxGlyph { e = Line.Single, n = Line.Single });
+                    DrawBox(left, top + r.Height - 1, new BoxGlyph { e = Line.Single, n = Line.Single });
                 }
                 void DrawCornerSE() {
                     //Right bottom
-                    DrawBox(left + r.Width, top + r.Height, new BoxGlyph { n = Line.Single, w = Line.Single });
+                    DrawBox(left + r.Width - 1, top + r.Height - 1, new BoxGlyph { n = Line.Single, w = Line.Single });
                 }
                 void DrawSidesX(Line style = Line.Single) {
                     foreach (var x in Enumerable.Range(left, r.Width)) {
                         DrawBox(x, top, new BoxGlyph { e = style, w = style });
-                        DrawBox(x, top + r.Height, new BoxGlyph { e = style, w = style });
+                        DrawBox(x, top + r.Height - 1, new BoxGlyph { e = style, w = style });
                     }
                 }
                 void DrawSidesY(Line style = Line.Single) {
                     foreach (var y in Enumerable.Range(top, r.Height)) {
                         DrawBox(left, y, new BoxGlyph { n = style, s = style });
-                        DrawBox(left + r.Width, y, new BoxGlyph { n = style, s = style });
+                        DrawBox(left + r.Width - 1, y, new BoxGlyph { n = style, s = style });
                     }
                 }
             }
@@ -328,7 +362,7 @@ namespace ASECII {
         }
     }
     enum Mode {
-        Edit, Select, Keyboard
+        Edit, SelectRect, SelectCircle, SelectLasso, SelectPoly, SelectWand, Move, Keyboard
     }
     class SpriteModel {
         int width, height;
@@ -342,7 +376,9 @@ namespace ASECII {
         public TileModel tiles;
         public BrushMode brush;
         public KeyboardMode keyboard;
-        public SelectMode select;
+        public MoveMode move;
+        public Selection selection;
+        public SelectRectMode selectRect;
         public PanMode pan;
 
         public int ticks = 0;
@@ -358,24 +394,37 @@ namespace ASECII {
 
         public Mode mode;
 
+        public int currentLayer = 0;
+
         public SpriteModel(int width, int height) {
             this.width = width;
             this.height = height;
             tiles = new TileModel();
             brush = new BrushMode(this);
             keyboard = new KeyboardMode(this);
-            select = new SelectMode(this);
+            selection = new Selection();
+            selectRect = new SelectRectMode(this, selection);
             pan = new PanMode(this);
             Undo = new Stack<SingleEdit>();
             Redo = new Stack<SingleEdit>();
             mode = Mode.Edit;
         }
         public bool IsEditable(Point p) {
-            bool result = sprite.InBounds(p);
-            if(select.rect.HasValue) {
-                var r = select.rect.Value;
+            bool result = true;
+            //Object layer lets us draw anywhere (unless we disable draw-off-canvas
+            if(sprite.layers[currentLayer] is Layer l) {
+                result = l.InBounds(p);
+            }
+            
+            /*
+            if(selectRect.rect.HasValue) {
+                var r = selectRect.rect.Value;
                 result = result && p.X >= r.X && p.X <= r.X + r.Width && p.Y >= r.Y && p.Y <= r.Y + r.Height;
-                
+            }
+            */
+            var selected = selection.GetAll();
+            if (selected.Any()) {
+                result = result && selected.Contains(p);
             }
             return result;
         }
@@ -414,18 +463,60 @@ namespace ASECII {
                     pan.startPan = new Point(0, 0);
                     pan.offsetPan = new Point(0, 0);
                 } else if(info.IsKeyPressed(T)) {
+                    ExitMode();
                     mode = Mode.Keyboard;
                     keyboard.keyCursor = null;
                     //keyboard.keyCursor = cursor;
                     //keyboard.margin = cursor;
                 } else if(info.IsKeyPressed(S) && !info.IsKeyDown(LeftControl)) {
-                    mode = Mode.Select;
+                    ExitMode();
+                    mode = Mode.SelectRect;
+                } else if(info.IsKeyPressed(B)) {
+                    ExitMode();
+                    mode = Mode.Edit;
+                } else if(info.IsKeyPressed(M)) {
+                    ExitMode();
+                    var moveLayer = Cut(selection.GetAll());
+                    if(currentLayer == sprite.layers.Count - 1) {
+                        sprite.layers.Add(moveLayer);
+                        currentLayer++;
+                    } else {
+                        currentLayer++;
+                        sprite.layers.Insert(currentLayer, moveLayer);
+                    }
+                    move = new MoveMode(this, selection, currentLayer, moveLayer);
+                    mode = Mode.Move;
                 }
 
                 if (pan.allowPan) {
                     pan.ProcessKeyboard(info);
                 }
             }
+            void ExitMode() {
+                if(mode == Mode.Move) {
+                    if(currentLayer == 0) {
+                        //If for some reason we're the first layer, then we have nothing to flatten onto
+                        return;
+                    } else {
+                        //Flatten the layer and decrement currentLayer
+                        var prevLayer = sprite.layers[currentLayer - 1];
+
+                        foreach (var (point, cell) in move.layer.cells) {
+                            prevLayer[point + move.layer.pos] = cell;
+                        }
+                        sprite.layers.RemoveAt(currentLayer);
+                        currentLayer--;
+                    }
+                }
+            }
+        }
+        public ObjectLayer Cut(HashSet<Point> points) {
+            ObjectLayer result = new ObjectLayer();
+            foreach(var point in points) {
+                result[point] = sprite.layers[currentLayer][point];
+                sprite.layers[currentLayer][point] = null;
+            }
+            return result;
         }
         public void ProcessMouse(MouseScreenObjectState state, bool IsMouseOver) {
             cursorScreen = state.SurfaceCellPosition;
@@ -437,8 +528,11 @@ namespace ASECII {
                     case Mode.Edit:
                         brush.ProcessMouse(state, IsMouseOver);
                         break;
-                    case Mode.Select:
-                        select.ProcessMouse(state);
+                    case Mode.SelectRect:
+                        selectRect.ProcessMouse(state);
+                        break;
+                    case Mode.Move:
+                        move.ProcessMouse(state);
                         break;
                     case Mode.Keyboard:
                         keyboard.ProcessMouse(state);
@@ -480,7 +574,7 @@ namespace ASECII {
         public void Do() {
             layer[cursor] = next;
         }
-        public bool IsRedundant() => prev.Background == next.Background && prev.Foreground == next.Foreground && prev.Glyph == next.Glyph;
+        public bool IsRedundant() => prev != null && prev.Background == next.Background && prev.Foreground == next.Foreground && prev.Glyph == next.Glyph;
     }
     class PanMode {
         SpriteModel model;
@@ -554,7 +648,7 @@ namespace ASECII {
             }
         }
         void Place(Point p) {
-            var layer = model.sprite.layers[0];
+            var layer = model.sprite.layers[model.currentLayer];
             SingleEdit action;
             if(model.tiles.brushIndex.HasValue) {
                 action = new SingleEdit(p, layer, model.tiles.brushTile);
@@ -631,15 +725,75 @@ namespace ASECII {
             }
         }
     }
-    class SelectMode {
+    class MoveMode {
         SpriteModel model;
+        Selection selection;
+        public int layerIndex;
+        public ObjectLayer layer;
+
+        public Point? start;
+        Point end;
+        //public Point moved => start.HasValue ? end - start.Value : new Point(0, 0);
+        MouseWatch mouse;
+        public MoveMode(SpriteModel model, Selection selection, int layerIndex, ObjectLayer layer) {
+            this.model = model;
+            this.selection = selection;
+            this.layerIndex = layerIndex;
+            this.layer = layer;
+            mouse = new MouseWatch();
+        }
+        public void ProcessMouse(MouseScreenObjectState state) {
+            mouse.Update(state, state.IsOnScreenObject);
+            if (mouse.left == MouseState.Pressed) {
+                if(mouse.leftPressedOnScreen) {
+                    //Start moving with the mouse
+                    start = model.cursor;
+                }
+            } else if(mouse.prevLeft) {
+                //Update the layer's apparent position
+                end = model.cursor;
+                if(end == start) {
+                    return;
+                }
+                var offset = end - start.Value;
+                layer.pos += offset;
+                selection.Offset(offset);
+                start = model.cursor;
+            }
+        }
+    }
+    class Selection {
+        public HashSet<Rectangle> rects;
+        public HashSet<Point> points;
+        public Selection() {
+            rects = new HashSet<Rectangle>();
+            points = new HashSet<Point>();
+        }
+        public HashSet<Point> GetAll() {
+            HashSet<Point> result = new HashSet<Point>();
+            foreach(var rect in rects) {
+                result.UnionWith(rect.Positions());
+            }
+            result.UnionWith(points);
+            return result;
+        }
+        public void Offset(Point offset) {
+            rects = new HashSet<Rectangle>(rects.Select(r => new Rectangle(r.X + offset.X, r.Y + offset.Y, r.Width, r.Height)));
+            points = new HashSet<Point>(points.Select(p => p + offset));
+        }
+
+    }
+    class SelectRectMode {
+        SpriteModel model;
+        Selection selection;
         public Point? start;
         Point end;
         public Rectangle? rect;
         bool prevLeft;
 
-        public SelectMode(SpriteModel model) {
+        public SelectRectMode(SpriteModel model, Selection selection) {
             this.model = model;
+            this.selection = selection;
         }
         public void ProcessMouse(MouseScreenObjectState state) {
             if(state.IsOnScreenObject) {
@@ -650,9 +804,9 @@ namespace ASECII {
                             end = model.cursor;
 
                             int leftX = Math.Min(start.Value.X, end.X);
-                            int width = Math.Max(start.Value.X, end.X) - leftX;
+                            int width = Math.Max(start.Value.X, end.X) - leftX + 1;
                             int topY = Math.Min(start.Value.Y, end.Y);
-                            int height = Math.Max(start.Value.Y, end.Y) - topY;
+                            int height = Math.Max(start.Value.Y, end.Y) - topY + 1;
                             rect = new Rectangle(leftX, topY, width, height);
 
                             //var t = model.ticks % 30;
@@ -666,6 +820,9 @@ namespace ASECII {
                 } else if (prevLeft) {
                     if (start == end) {
                         rect = null;
+                    } else {
+                        selection.rects.Clear();
+                        selection.rects.Add(rect.Value);
                     }
                 }
                 prevLeft = state.Mouse.LeftButtonDown;

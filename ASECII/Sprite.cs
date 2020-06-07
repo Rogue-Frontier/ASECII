@@ -26,6 +26,9 @@ namespace ASECII {
                     TileValue c = empty;
                     foreach(var layer in Enumerable.Range(0, layers.Count)) {
                         var cg = layers[layer][p];
+                        if(cg == null) {
+                            continue;
+                        }
                         if (cg.Background.A != 0) {
                             c.Background = cg.Background;
                         }
@@ -44,8 +47,11 @@ namespace ASECII {
         TileRef this[Point p] { get; set; }
     }
     class Layer : ILayer {
+        public int width, height;
         public TileRef[,] cells;
         public Layer(int width, int height) {
+            this.width = width;
+            this.height = height;
             cells = new TileRef[width, height];
             var cg = new TileValue(Color.Transparent, Color.Transparent, ' ');
             foreach (var x in Enumerable.Range(0, width)) {
@@ -54,16 +60,26 @@ namespace ASECII {
                 }
             }
         }
-        public TileRef this[Point p] { get => cells[p.X, p.Y]; set => cells[p.X, p.Y] = value; }
+        public TileRef this[Point p] {
+            get => InBounds(p) ? cells[p.X, p.Y] : null;
+            set {
+                if (InBounds(p)) cells[p.X, p.Y] = value;
+            } 
+        }
+        public bool InBounds(Point p) => p.X > -1 && p.Y > -1 && p.X < width && p.Y < height;
     }
     class ObjectLayer : ILayer {
         public Point pos;
         public Dictionary<Point, TileRef> cells;
+        public ObjectLayer() {
+            pos = new Point(0, 0);
+            cells = new Dictionary<Point, TileRef>();
+        }
         public TileRef this[Point p] {
-            get => cells.TryGetValue(pos + p, out TileRef cg) ? cg : new TileValue(Color.Transparent, Color.Transparent, ' ');
+            get => cells.TryGetValue(p - pos, out TileRef cg) ? cg : null;
             set {
-                if (value == null || value.Foreground.A == 0) cells.Remove(pos + p);
-                else cells[pos + p] = value;
+                if (value == null) cells.Remove(p - pos);
+                else cells[p - pos] = value;
             }
         }
     }
