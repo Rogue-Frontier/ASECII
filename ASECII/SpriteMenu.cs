@@ -190,6 +190,7 @@ namespace ASECII {
             var dark = new Color(25, 25, 25);
             model.sprite.UpdatePreview();
             var center = new Point(hx, hy);
+
             for (int x = -hx; x < hx+1; x++) {
                 for(int y = -hy; y < hy+1; y++) {
                     var pos = camera - new Point(x, y) + center;
@@ -250,6 +251,8 @@ namespace ASECII {
                         break;
                     case Mode.SelectRect:
                         if (model.ticksSelect % 20 < 10) {
+                            DrawSelection();
+
                             if (model.selectRect.GetAdjustedRect(out Rectangle r)) {
                                 DrawRect(r);
                             } else {
@@ -258,6 +261,123 @@ namespace ASECII {
                             }
                         }
                         
+                        break;
+                    case Mode.Move:
+                        DrawSelection();
+                        //Draw offset
+
+
+                        //TO DO: Fix
+                        if (model.ticksSelect % 20 < 10 && model.move.current.HasValue) {
+                            var offset = model.move.end - model.move.start.Value;
+
+                            int x = model.move.start.Value.X;
+                            int y = model.move.start.Value.Y;
+                            bool first = true;
+                            if(Math.Abs(offset.X) > Math.Abs(offset.Y)) {
+                                DrawHorizontal();
+                                DrawVertical();
+                            } else if (Math.Abs(offset.X) < Math.Abs(offset.Y)) {
+                                DrawVertical();
+                                DrawHorizontal();
+                            } else {
+                                char glyph = Math.Sign(offset.X) == Math.Sign(offset.Y) ? '\\' : '/';
+                                for (int i = 0; i < Math.Abs(offset.X) + 1; i++) {
+                                    /*
+                                    DrawBox(x, y, new BoxGlyph {
+                                        n = Line.Single,
+                                        e = Line.Single,
+                                        s = Line.Single,
+                                        w = Line.Single,
+                                    });
+                                    */
+                                    this.SetCellAppearance(x, y, new ColoredGlyph(model.brush.foreground, model.brush.background, glyph));
+                                    x += Math.Sign(offset.X);
+                                    y += Math.Sign(offset.Y);
+                                }
+                            }
+
+                            void DrawHorizontal() {
+                                if(offset.X == 0) {
+                                    return;
+                                }
+                                //Start
+                                if(first) {
+                                    DrawBox(x, y, new BoxGlyph {
+                                        e = offset.X > 0 ? Line.Double : Line.None,
+                                        w = offset.X < 0 ? Line.Double : Line.None,
+                                        n = Line.Single,
+                                        s = Line.Single
+                                    });
+                                }
+                                //Body
+                                for (int i = 1; i < Math.Abs(offset.X) + 1; i++) {
+                                    x += Math.Sign(offset.X);
+                                    DrawBox(x, y, new BoxGlyph {
+                                        e = Line.Double,
+                                        w = Line.Double
+                                    });
+                                }
+                                //End
+                                if(first) {
+                                    DrawBox(x, y, new BoxGlyph {
+                                        e = offset.X < 0 ? Line.Double : offset.X == 0 ? Line.Single : Line.None,
+                                        w = offset.X > 0 ? Line.Double : offset.X == 0 ? Line.Single : Line.None,
+                                        n = offset.Y < 0 ? Line.Double : offset.Y == 0 ? Line.Single : Line.None,
+                                        s = offset.Y > 0 ? Line.Double : offset.Y == 0 ? Line.Single : Line.None
+                                    });
+                                } else {
+                                    DrawBox(x, y, new BoxGlyph {
+                                        e = offset.X < 0 ? Line.Double : Line.None,
+                                        w = offset.X > 0 ? Line.Double : Line.None,
+                                        n = Line.Single,
+                                        s = Line.Single
+                                    });
+                                }
+                                
+                                first = false;
+                            }
+                            void DrawVertical() {
+                                if (offset.Y == 0) {
+                                    return;
+                                }
+                                //Start
+                                if (first) {
+                                    DrawBox(x, y, new BoxGlyph {
+                                        n = offset.Y < 0 ? Line.Double : Line.None,
+                                        s = offset.Y > 0 ? Line.Double : Line.None,
+                                        e = Line.Single,
+                                        w = Line.Single
+                                    });
+                                }
+                                //Body
+                                for (int i = 1; i < Math.Abs(offset.Y) + 1; i++) {
+                                    y += Math.Sign(offset.Y);
+                                    DrawBox(x, y, new BoxGlyph {
+                                        n = Line.Double,
+                                        s = Line.Double
+                                    });
+                                }
+                                //End
+                                if(first) {
+                                    DrawBox(x, y, new BoxGlyph {
+                                        e = offset.X > 0 ? Line.Double : offset.X == 0 ? Line.Single : Line.None,
+                                        w = offset.X < 0 ? Line.Double : offset.X == 0 ? Line.Single : Line.None,
+                                        n = offset.Y > 0 ? Line.Double : offset.Y == 0 ? Line.Single : Line.None,
+                                        s = offset.Y < 0 ? Line.Double : offset.Y == 0 ? Line.Single : Line.None
+                                    });
+                                } else {
+                                    DrawBox(x, y, new BoxGlyph {
+                                        n = offset.Y > 0 ? Line.Double : Line.None,
+                                        s = offset.Y < 0 ? Line.Double : Line.None,
+                                        e = Line.Single,
+                                        w = Line.Single
+                                    });
+                                }
+                                
+                                first = false;
+                            }
+                        }
                         break;
                 }
             }
@@ -269,24 +389,62 @@ namespace ASECII {
                 var all = model.selection.GetAll();
                 foreach(var point in all) {
                     
-                    bool n = Contains(new Point(0, -1)), e = Contains(new Point(1, 0)), s = Contains(new Point(0, +1)), w = Contains(new Point(-1, 0)), ne = n && e, se = s && e, sw = s && w, nw = n && w;
+                    bool n = Contains(new Point(0, -1)), e = Contains(new Point(1, 0)), s = Contains(new Point(0, +1)), w = Contains(new Point(-1, 0)), ne = Contains(new Point(1, -1)), se = Contains(new Point(1, 1)), sw = Contains(new Point(-1, 1)), nw = Contains(new Point(-1, -1));
                     bool Contains(Point offset) => all.Contains(point + offset);
                     var p = point - camera;
                     if (!n && !e && !s && !w) {
                         //Isolated cell
-                        this.SetCellAppearance(p.X, p.Y, new ColoredGlyph(Color.Transparent, model.brush.background, '+'));
+                        this.AddDecorator(p.X, p.Y, 1, new CellDecorator(model.brush.foreground, '+', Mirror.None));
                         continue;
-                    } else if(n && e && s && w) {
+                    } else if (n && e && s && w && ne && nw && se && sw) {
                         //Surrounded cell
-                        this.SetCellAppearance(p.X, p.Y, new ColoredGlyph(Color.Transparent, model.brush.background, ' '));
+                        DrawBox(p.X, p.Y, new BoxGlyph { n = Line.Single, e = Line.Single, s = Line.Single, w = Line.Single });
                     } else {
                         BoxGlyph g = new BoxGlyph {
-                            n = n && (!nw || !ne) ? Line.Single : Line.None,
-                            e = e && (!ne || !se) ? Line.Single : Line.None,
-                            s = s && (!sw || !se) ? Line.Single : Line.None,
-                            w = w && (!nw || !sw) ? Line.Single : Line.None,
-
+                            n = n && (!e && !w) ? Line.Double :                     //Thin Line Body
+                                n && (!ne && !nw) ? Line.Double :                   //Intersection
+                                n && (!e || !w || !ne || !nw) ? Line.Single :       //Edge Line Body
+                                !n && !s && (w != e) ? Line.Single :                //Thin line End
+                                Line.None,
+                            e = e && (!n && !s) ? Line.Double :                     //Thin Line Body
+                                e && (!ne && !se) ? Line.Double :                   //Intersection
+                                e && (!n || !s || !se || !ne) ? Line.Single :       //Edge Line Body
+                                !e && !w && (n != s) ? Line.Single :                //Thin line End
+                                Line.None,
+                            s = s && (!e && !w) ? Line.Double :                     //Thin Line Body
+                                s && (!se && !sw) ? Line.Double :                   //Intersection
+                                s && (!e || !w || !se || !sw) ? Line.Single :       //Edge Line Body
+                                !s && !n && (w != e) ? Line.Single :                //Thin line End
+                                Line.None,
+                            w = w && (!n && !s) ? Line.Double :                     //Thin Line Body
+                                w && (!nw && !sw) ? Line.Double :                   //Intersection
+                                w && (!n || !s || !nw || !sw) ? Line.Single :       //Edge Line Body
+                                !w && !e && (n != s) ? Line.Single :                //Thin line End
+                                Line.None,
                         };
+                        if(!BoxInfo.IBMCGA.glyphFromInfo.ContainsKey(g)) {
+                            if(g.n == Line.Single && g.e == Line.Single) {
+                                g = new BoxGlyph {
+                                n = g.n,
+                                e = g.e
+                                };
+                            } else if (g.e == Line.Single && g.s == Line.Single) {
+                                g = new BoxGlyph {
+                                    e = g.e,
+                                    s = g.s
+                                };
+                            } else if (g.s == Line.Single && g.w == Line.Single) {
+                                g = new BoxGlyph {
+                                    s = g.s,
+                                    w = g.w
+                                };
+                            } else if (g.w == Line.Single && g.n == Line.Single) {
+                                g = new BoxGlyph {
+                                    w = g.w,
+                                    n = g.n
+                                };
+                            }
+                        }
                         DrawBox(p.X, p.Y, g);
                     }
                 }
@@ -295,18 +453,18 @@ namespace ASECII {
                 var (left, top) = (r.X, r.Y);
 
 
-                if (r.Width > 0 && r.Height > 0) {
+                if (r.Width > 1 && r.Height > 1) {
                     DrawSidesX(Line.Single);
                     DrawSidesY(Line.Single);
                     DrawCornerNW();
                     DrawCornerNE();
                     DrawCornerSW();
                     DrawCornerSE();
-                } else if (r.Width > 0) {
+                } else if (r.Width > 1) {
                     DrawSidesX(Line.Double);
                     DrawBox(left, top, new BoxGlyph { n = Line.Single, e = Line.Double, s = Line.Single });
                     DrawBox(left + r.Width - 1, top, new BoxGlyph { n = Line.Single, w = Line.Double, s = Line.Single });
-                } else if (r.Height > 0) {
+                } else if (r.Height > 1) {
                     DrawSidesY(Line.Double);
                     DrawBox(left, top, new BoxGlyph { s = Line.Double, e = Line.Single, w = Line.Single });
                     DrawBox(left, top + r.Height - 1, new BoxGlyph { n = Line.Double, w = Line.Single, e = Line.Single });
@@ -344,7 +502,7 @@ namespace ASECII {
                 }
             }
             void DrawBox(int x, int y, BoxGlyph g) {
-                this.SetCellAppearance(x, y, new ColoredGlyph(model.brush.foreground, model.brush.background, BoxInfo.IBMCGA.glyphFromInfo[g]));
+                this.AddDecorator(x, y, 1, new CellDecorator(model.brush.foreground, BoxInfo.IBMCGA.glyphFromInfo[g], Mirror.None));
             }
         }
         public override bool ProcessKeyboard(Keyboard info) {
@@ -365,6 +523,7 @@ namespace ASECII {
         Edit, SelectRect, SelectCircle, SelectLasso, SelectPoly, SelectWand, Move, Keyboard
     }
     class SpriteModel {
+        bool infinite;
         int width, height;
 
         Stack<SingleEdit> Undo;
@@ -732,7 +891,8 @@ namespace ASECII {
         public ObjectLayer layer;
 
         public Point? start;
-        Point end;
+        public Point? current;
+        public Point end;
         //public Point moved => start.HasValue ? end - start.Value : new Point(0, 0);
         MouseWatch mouse;
         public MoveMode(SpriteModel model, Selection selection, int layerIndex, ObjectLayer layer) {
@@ -747,18 +907,19 @@ namespace ASECII {
             if (mouse.left == MouseState.Pressed) {
                 if(mouse.leftPressedOnScreen) {
                     //Start moving with the mouse
-                    start = model.cursor;
+                    current = model.cursor;
+                    start = current;
                 }
             } else if(mouse.prevLeft) {
                 //Update the layer's apparent position
                 end = model.cursor;
-                if(end == start) {
+                if(end == current) {
                     return;
                 }
-                var offset = end - start.Value;
+                var offset = end - current.Value;
                 layer.pos += offset;
                 selection.Offset(offset);
-                start = model.cursor;
+                current = model.cursor;
             }
         }
     }
@@ -818,12 +979,11 @@ namespace ASECII {
                         rect = new Rectangle(start.Value, new Point(0, 0));
                     }
                 } else if (prevLeft) {
-                    if (start == end) {
-                        rect = null;
-                    } else {
-                        selection.rects.Clear();
+                    if (start != end) {
+                        //selection.rects.Clear();
                         selection.rects.Add(rect.Value);
                     }
+                    rect = null;
                 }
                 prevLeft = state.Mouse.LeftButtonDown;
             }
