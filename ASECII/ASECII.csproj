@@ -63,7 +63,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="SadConsole.Host.MonoGame" Version="9.0.0-alpha5" />
+    <PackageReference Include="SadConsole.Host.MonoGame" Version="9.0.0-alpha6" />
   </ItemGroup>
 
   <ItemGroup>

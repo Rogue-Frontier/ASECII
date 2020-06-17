@@ -5,19 +5,19 @@ using System.Collections.Generic;
 using System.Text;
 
 namespace ASECII {
-    enum ButtonStates {
+    public enum ButtonStates {
         PrevUp = 1,
         PrevDown = 2,
         NowUp = 4,
         NowDown = 8
     }
-    enum MouseState {
+    public enum MouseState {
         Up = ButtonStates.PrevUp | ButtonStates.NowUp,
         Pressed = ButtonStates.PrevUp | ButtonStates.NowDown,
         Held = ButtonStates.PrevDown | ButtonStates.NowDown,
         Released = ButtonStates.PrevDown | ButtonStates.NowUp
     }
-    class MouseWatch {
+    public class MouseWatch {
 
         public MouseState left;
         public MouseState right;

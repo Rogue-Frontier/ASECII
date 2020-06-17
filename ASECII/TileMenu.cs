@@ -36,6 +36,7 @@ namespace ASECII {
             return base.ProcessMouse(state);
         }
         public override void Draw(TimeSpan timeElapsed) {
+            this.Clear();
             for (int i = 0; i < tileModel.tiles.Count; i++) {
                 this.SetCellAppearance(i % Width, i / Width, tileModel.tiles[i]);
             }
@@ -51,7 +52,7 @@ namespace ASECII {
             base.Draw(timeElapsed);
         }
     }
-    class TileModel {
+    public class TileModel {
         public List<TileValue> tiles = new List<TileValue>();
         public HashSet<TileValue> tileset = new HashSet<TileValue>();
         public int? brushIndex;

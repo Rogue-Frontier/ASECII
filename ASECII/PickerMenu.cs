@@ -43,6 +43,7 @@ namespace ASECII {
             return base.ProcessMouse(state);
         }
         public override void Draw(TimeSpan timeElapsed) {
+            this.Clear();
             var colors = colorPicker.colors;
             for (int x = 0; x < Width; x++) {
                 for (int y = 0; y < Height; y++) {

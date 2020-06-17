@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 namespace ASECII {
-    class PaletteMenu : SadConsole.Console {
+    public class PaletteMenu : SadConsole.Console {
         SpriteModel spriteModel;
         MouseWatch mouse;
         PaletteModel paletteModel;
@@ -94,7 +94,7 @@ namespace ASECII {
             base.Draw(timeElapsed);
         }
     }
-    class PaletteModel {
+    public class PaletteModel {
         public List<Color> palette = new List<Color>();
         public HashSet<Color> paletteSet = new HashSet<Color>();
         public int? foregroundIndex;
