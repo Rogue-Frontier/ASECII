@@ -6,8 +6,8 @@ namespace ASECII {
         static int width = 108;
         static int height = 90;
         private static void Main(string[] args) {
-            var s = JsonConvert.SerializeObject(new TileValue(new Color(1, 2, 3, 4), new Color(5, 6, 7, 8), 9), SFileMode.settings);
-            var s2 = JsonConvert.DeserializeObject<TileValue>(s);
+            SadConsole.UI.Themes.Library.Default.Colors.ControlHostBack = Color.Black;
+            SadConsole.UI.Themes.Library.Default.Colors.ControlBack = Color.Gray;
 
             //SadConsole.Settings.UnlimitedFPS = true;
             SadConsole.Settings.UseDefaultExtendedFont = true;

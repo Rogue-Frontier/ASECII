@@ -11,19 +11,27 @@ using System.Runtime.Serialization;
 namespace ASECII {
     public class Sprite {
         public List<Layer> layers;
+        public Point origin;
+        public Point end;
         public Dictionary<(int, int), TileValue> preview;
         public static TileValue empty => new TileValue(Color.Transparent, Color.Transparent, 0);
         public Sprite() {
             layers = new List<Layer>();
-            layers.Add(new Layer());
             preview = new Dictionary<(int, int), TileValue>();
         }
         public void UpdatePreview() {
             preview = new Dictionary<(int, int), TileValue>();
+
+            int left = 0, top = 0, right = 0, bottom = 0;
             foreach(var layer in layers) {
-                foreach(var (point, tile) in layer.cells) {
+                foreach(var ((x, y), tile) in layer.cells) {
+                    left = Math.Min(left, x);
+                    right = Math.Max(right, x);
+                    top = Math.Min(top, x);
+                    bottom = Math.Max(bottom, x);
+
                     TileValue t = new TileValue(tile.Foreground, tile.Background, tile.Glyph);
-                    if (preview.TryGetValue(point, out var current)) {
+                    if (preview.TryGetValue((x, y), out var current)) {
                         if (t.Background.A != 0) {
                             current.Background = t.Background;
                         }
@@ -31,12 +39,14 @@ namespace ASECII {
                             current.Foreground = t.Foreground;
                             current.Glyph = t.Glyph;
                         }
-                        preview[point] = current;
+                        preview[(x, y)] = current;
                     } else {
-                        preview[point] = t;
+                        preview[(x, y)] = t;
                     }
                 }
             }
+            origin = new Point(left, top);
+            end = new Point(right, bottom);
         }
     }
     public class Layer {

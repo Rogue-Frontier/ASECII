@@ -527,11 +527,19 @@ namespace ASECII {
             }
         }
         public override bool ProcessKeyboard(Keyboard info) {
-            if (info.IsKeyPressed(S) && info.IsKeyDown(LeftControl)) {
+            if (info.IsKeyPressed(Escape)) {
+                if(model.mode == Mode.Keyboard) {
+                    model.ProcessKeyboard(info);
+                } else {
+                    Parent.Parent.Children.Remove(Parent);
+                }
+            } else if (info.IsKeyPressed(S) && info.IsKeyDown(LeftControl)) {
                 //File.WriteAllText(Path.Combine(Environment.CurrentDirectory, Path.GetFileName(Path.GetTempFileName())), JsonConvert.SerializeObject(model));
-                SadConsole.Game.Instance.Screen.Children.Add(new FileMenu(Width, Height, new SaveMode(model)));
+                var s = SadConsole.Game.Instance.Screen;
+                s.Children.Add(new FileMenu(s.Width, s.Height, new SaveMode(model)));
+            } else {
+                model.ProcessKeyboard(info);
             }
-            model.ProcessKeyboard(info);
             return base.ProcessKeyboard(info);
         }
         public override bool ProcessMouse(MouseScreenObjectState state) {
@@ -749,6 +757,9 @@ namespace ASECII {
             this.cursor = cursor;
             this.layer = layer;
             this.prev = layer[cursor];
+            if(next != null && next.Foreground.A == 0 && next.Background.A == 0) {
+                next = null;
+            }
             this.next = next;
         }
         public void Undo() {
@@ -756,8 +767,9 @@ namespace ASECII {
         }
         public void Do() {
             layer[cursor] = next;
+
         }
-        public bool IsRedundant() => prev != null && prev.Background == next.Background && prev.Foreground == next.Foreground && prev.Glyph == next.Glyph;
+        public bool IsRedundant() => prev == null ? next == null : next != null && (prev.Background == next.Background && prev.Foreground == next.Foreground && prev.Glyph == next.Glyph);
     }
     public class PanMode {
         public SpriteModel model;
@@ -895,7 +907,7 @@ namespace ASECII {
             } else if (info.IsKeyPressed(Back)) {
                 var layer = sprite.layers[0];
                 var p = keyCursor ?? model.cursor;
-                var action = new SingleEdit(p, layer, new TileValue(Color.Transparent, Color.Transparent, ' '));
+                var action = new SingleEdit(p, layer, null);
                 model.AddAction(action);
                 ticks = 15;
 
