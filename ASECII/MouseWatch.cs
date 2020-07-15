@@ -25,11 +25,17 @@ namespace ASECII {
         public bool rightPressedOnScreen;
         public Point leftPressedPos;
         public Point rightPressedPos;
+        public Point prevPos;
+        public Point nowPos;
         public bool prevLeft;
         public bool prevRight;
         public bool nowLeft;
         public bool nowRight;
         public void Update(MouseScreenObjectState state, bool IsMouseOver) {
+
+            prevPos = nowPos;
+            nowPos = state.SurfaceCellPosition;
+
             prevLeft = nowLeft;
             prevRight = nowRight;
             nowLeft = state.Mouse.LeftButtonDown;
