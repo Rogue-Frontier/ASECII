@@ -1,7 +1,7 @@
 ﻿using Newtonsoft.Json;
 using SadConsole;
 using SadConsole.Input;
-using SadConsole.MonoGame;
+using SadConsole.Host.MonoGame;
 using SadConsole.UI;
 using SadConsole.UI.Controls;
 using SadConsole.UI.Themes;
@@ -37,6 +37,7 @@ namespace ASECII {
         public void Enter(Console console, string text) {
             model.filepath = text;
 
+            STypeConverter.PrepareConvert();
             File.WriteAllText(text, JsonConvert.SerializeObject(model, SFileMode.settings));
 
             var preview = model.sprite.preview;
@@ -66,16 +67,17 @@ namespace ASECII {
             var Height = console.Height;
 
             if (File.Exists(text)) {
-
-                //https://stackoverflow.com/a/57319194
-                TypeDescriptor.AddAttributes(typeof((int, int)), new TypeConverterAttribute(typeof(Int2Converter)));
-                
-                
-                
-                console.Children.Add(new EditorMain(Width, Height, JsonConvert.DeserializeObject<SpriteModel>(File.ReadAllText(text), SFileMode.settings)));
+                try {
+                    STypeConverter.PrepareConvert();
+                    var sprite = JsonConvert.DeserializeObject<SpriteModel>(File.ReadAllText(text), SFileMode.settings);
+                    console.Children.Add(new EditorMain(Width, Height, sprite));
+                } catch {
+                    throw;
+                }
             } else {
                 var model = new SpriteModel(Width, Height) { filepath = text };
                 model.sprite.layers.Add(new Layer());
+                STypeConverter.PrepareConvert();
                 File.WriteAllText(text, JsonConvert.SerializeObject(model, SFileMode.settings));
                 console.Children.Add(new EditorMain(Width, Height, model));
             }
@@ -95,7 +97,9 @@ namespace ASECII {
         int folderListingX;
 
         public FileMenu(int width, int height, FileMode mode, HashSet<string> recentFiles = null) : base(width, height) {
-            
+
+            DefaultBackground = Color.Black;
+
             this.recentFiles = recentFiles;
             this.preloaded = new Dictionary<string, SpriteModel>();
             this.recentListing = new List<Button>();
@@ -152,6 +156,7 @@ namespace ASECII {
                     Text = "..",
                     TextAlignment = HorizontalAlignment.Left,
                 };
+
                 b.Click += (e, args) => {
                     textbox.Text = Directory.GetParent(filepath).FullName;
                 };
@@ -182,7 +187,7 @@ namespace ASECII {
                     ShowPreview(filepath);
                 };
                 b.Click += (e, args) => {
-                    textbox.Text = filepath;
+                    mode.Enter(this, filepath);
                 };
                 folderListing.Add(b);
             } else {
@@ -234,7 +239,8 @@ namespace ASECII {
                         ShowPreview(file);
                     };
                     b.Click += (e, args) => {
-                        textbox.Text = file;
+                        //textbox.Text = file;
+                        mode.Enter(this, file);
                     };
                     folderListing.Add(b);
                 }
@@ -244,7 +250,7 @@ namespace ASECII {
                     return;
                 } else {
                     try {
-                        TypeDescriptor.AddAttributes(typeof((int, int)), new TypeConverterAttribute(typeof(Int2Converter)));
+                        STypeConverter.PrepareConvert();
                         var model = JsonConvert.DeserializeObject<SpriteModel>(File.ReadAllText(file), SFileMode.settings);
                         if(model.filepath == null) {
                             preloaded[file] = null;
@@ -260,22 +266,35 @@ namespace ASECII {
                 }
             }
         }
-        public override void Draw(TimeSpan delta) {
-            base.Draw(delta);
+        public override void Render(TimeSpan delta) {
+            base.Render(delta);
+            this.Clear();
 
+            var c1 = new Color(25, 25, 25);
+            var c2 = new Color(51, 51, 51);
+            for (int x = 0; x < Width; x++) {
+                for(int y = 0; y < Height; y++) {
+                    this.SetBackground(x, y, (x + y) % 2 == 0 ? c1 : c2);
+                }
+            }
             if (hoveredFile != null) {
 
-                var previewStart = new Point(32, 0);
-                this.Print(previewStart.X, previewStart.Y, "Preview");
+                var previewX = 33;
+                var previewY = 3;
                 var origin = hoveredFile.sprite.origin;
 
-                for (int x = 0; x < Width; x++) {
-                    for (int y = 0; y < Height; y++) {
+                
+                var previewStart = new Point(previewX, previewY);
+                for (int x = previewX; x < Width; x++) {
+                    for (int y = previewY; y < Height; y++) {
                         var screenPos = new Point(x, y);
                         var spritePos = screenPos - previewStart + origin;
-                        this.SetCellAppearance(x, y, hoveredFile.sprite.preview.TryGetValue(spritePos, out var tile) ? tile : new TileValue(Color.Black, Color.Black, 0));
+                        if (hoveredFile.sprite.preview.TryGetValue(spritePos, out var tile)) {
+                            this.SetCellAppearance(x, y, tile);
+                        }
                     }
                 }
+                this.Print(previewX, previewY, "Preview", Color.White, Color.Black);
             }
         }
         public override bool ProcessKeyboard(Keyboard keyboard) {

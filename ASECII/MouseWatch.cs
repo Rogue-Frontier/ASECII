@@ -11,16 +11,24 @@ namespace ASECII {
         NowUp = 4,
         NowDown = 8
     }
-    public enum MouseState {
+    public enum ClickState {
         Up = ButtonStates.PrevUp | ButtonStates.NowUp,
         Pressed = ButtonStates.PrevUp | ButtonStates.NowDown,
         Held = ButtonStates.PrevDown | ButtonStates.NowDown,
         Released = ButtonStates.PrevDown | ButtonStates.NowUp
     }
+    public enum MouseState {
+        Enter,
+        Hover,
+        Exit,
+        Outside
+    }
     public class MouseWatch {
-
-        public MouseState left;
-        public MouseState right;
+        public MouseState mouseOver;
+        public bool nowMouseOver;
+        public bool prevMouseOver;
+        public ClickState left;
+        public ClickState right;
         public bool leftPressedOnScreen;
         public bool rightPressedOnScreen;
         public Point leftPressedPos;
@@ -33,6 +41,10 @@ namespace ASECII {
         public bool nowRight;
         public void Update(MouseScreenObjectState state, bool IsMouseOver) {
 
+            prevMouseOver = nowMouseOver;
+            nowMouseOver = IsMouseOver;
+            mouseOver = !prevMouseOver ? (nowMouseOver ? MouseState.Enter : MouseState.Outside) : (nowMouseOver ? MouseState.Hover : MouseState.Exit);
+
             prevPos = nowPos;
             nowPos = state.SurfaceCellPosition;
 
@@ -41,13 +53,13 @@ namespace ASECII {
             nowLeft = state.Mouse.LeftButtonDown;
             nowRight = state.Mouse.RightButtonDown;
 
-            left = !prevLeft ? (!nowLeft ? MouseState.Up : MouseState.Pressed) : (nowLeft ? MouseState.Held : MouseState.Released);
-            right = !prevRight ? (!nowRight ? MouseState.Up : MouseState.Pressed) : (nowRight ? MouseState.Held : MouseState.Released);
-            if(left == MouseState.Pressed) {
+            left = !prevLeft ? (!nowLeft ? ClickState.Up : ClickState.Pressed) : (nowLeft ? ClickState.Held : ClickState.Released);
+            right = !prevRight ? (!nowRight ? ClickState.Up : ClickState.Pressed) : (nowRight ? ClickState.Held : ClickState.Released);
+            if(left == ClickState.Pressed) {
                 leftPressedOnScreen = IsMouseOver;
                 leftPressedPos = state.SurfaceCellPosition;
             }
-            if(right == MouseState.Pressed) {
+            if(right == ClickState.Pressed) {
                 rightPressedOnScreen = IsMouseOver;
                 rightPressedPos = state.SurfaceCellPosition;
             }

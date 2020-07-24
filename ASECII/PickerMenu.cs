@@ -42,7 +42,7 @@ namespace ASECII {
             
             return base.ProcessMouse(state);
         }
-        public override void Draw(TimeSpan timeElapsed) {
+        public override void Render(TimeSpan timeElapsed) {
             this.Clear();
             var colors = colorPicker.colors;
             for (int x = 0; x < Width; x++) {
@@ -79,7 +79,7 @@ namespace ASECII {
                     }
                 }
             }
-            base.Draw(timeElapsed);
+            base.Render(timeElapsed);
         }
     }
     class PickerModel {
@@ -164,7 +164,7 @@ namespace ASECII {
             }
             return base.ProcessMouse(state);
         }
-        public override void Draw(TimeSpan timeElapsed) {
+        public override void Render(TimeSpan timeElapsed) {
             for (int x = 0; x < Width; x++) {
                 this.Print(x, 0, " ", Color.Transparent, bar[x]);
             }
@@ -172,7 +172,7 @@ namespace ASECII {
             var g = c.GetTextColor();
             this.SetCellAppearance(index, 0, new ColoredGlyph(g, c, '*'));
 
-            base.Draw(timeElapsed);
+            base.Render(timeElapsed);
         }
     }
 }

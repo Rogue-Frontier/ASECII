@@ -35,7 +35,7 @@ namespace ASECII {
 
             return base.ProcessMouse(state);
         }
-        public override void Draw(TimeSpan timeElapsed) {
+        public override void Render(TimeSpan timeElapsed) {
             this.Clear();
             for (int i = 0; i < tileModel.tiles.Count; i++) {
                 this.SetCellAppearance(i % Width, i / Width, tileModel.tiles[i]);
@@ -49,7 +49,7 @@ namespace ASECII {
                 this.SetCellAppearance(x, y, new ColoredGlyph(t.Background, t.Foreground, t.Glyph));
             }
 
-            base.Draw(timeElapsed);
+            base.Render(timeElapsed);
         }
     }
     public class TileModel {

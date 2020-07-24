@@ -162,9 +162,9 @@ namespace ASECII {
         public override bool ProcessKeyboard(Keyboard info) {
             return base.ProcessKeyboard(info);
         }
-        public override void Draw(TimeSpan timeElapsed) {
+        public override void Render(TimeSpan timeElapsed) {
             this.Clear();
-            base.Draw(timeElapsed);
+            base.Render(timeElapsed);
         }
     }
 
@@ -178,7 +178,7 @@ namespace ASECII {
         public override void Update(TimeSpan timeElapsed) {
             base.Update(timeElapsed);
         }
-        public override void Draw(TimeSpan timeElapsed) {
+        public override void Render(TimeSpan timeElapsed) {
             this.Clear();
             model.ticks++;
             model.ticksSelect++;
@@ -188,8 +188,9 @@ namespace ASECII {
 
             var camera = model.camera - model.pan.offsetPan;
 
-            var black = Color.Black;
-            var dark = new Color(25, 25, 25);
+            var c1 = new Color(25, 25, 25);
+            var c2 = new Color(51, 51, 51);
+
             model.sprite.UpdatePreview();
             var center = new Point(hx, hy);
 
@@ -203,7 +204,7 @@ namespace ASECII {
                         if (model.sprite.preview.TryGetValue(pos, out var tile)) {
                             this.SetCellAppearance(ax, ay, tile.cg);
                         } else {
-                            var c = ((ax + ay) % 2 == 0) ? black : dark;
+                            var c = ((ax + ay) % 2 == 0) ? c1 : c2;
                             this.SetCellAppearance(ax, ay, new ColoredGlyph(Color.Transparent, c));
                         }
                     }
@@ -219,7 +220,7 @@ namespace ASECII {
                             if (model.sprite.preview.TryGetValue(pos, out var tile)) {
                                 this.SetCellAppearance(ax, ay, tile.cg);
                             } else {
-                                var c = ((ax + ay) % 2 == 0) ? black : dark;
+                                var c = ((ax + ay) % 2 == 0) ? c1 : c2;
                                 this.SetCellAppearance(ax, ay, new ColoredGlyph(Color.Transparent, c, ' '));
                             }
                         } else {
@@ -405,7 +406,7 @@ namespace ASECII {
             
             
 
-            base.Draw(timeElapsed);
+            base.Render(timeElapsed);
             void DrawSelection() {
                 var all = model.selection.GetAll();
                 foreach(var point in all) {
@@ -941,7 +942,7 @@ namespace ASECII {
         }
         public void ProcessMouse(MouseScreenObjectState state) {
             mouse.Update(state, state.IsOnScreenObject);
-            if (mouse.left == MouseState.Pressed) {
+            if (mouse.left == ClickState.Pressed) {
                 if(mouse.leftPressedOnScreen) {
                     //Start moving with the mouse
                     current = model.cursor;

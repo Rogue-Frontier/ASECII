@@ -30,7 +30,7 @@ namespace ASECII {
 
             return base.ProcessMouse(state);
         }
-        public override void Draw(TimeSpan timeElapsed) {
+        public override void Render(TimeSpan timeElapsed) {
             for (int i = 0; i < 256; i++) {
                 string s = ((char)i).ToString();
                 this.Print(i % Width, i / Width, s, spriteModel.brush.foreground, spriteModel.brush.background);
@@ -41,7 +41,7 @@ namespace ASECII {
             this.SetCellAppearance(x, y, new ColoredGlyph(c.Background, c.Foreground, c.Glyph));
 
 
-            base.Draw(timeElapsed);
+            base.Render(timeElapsed);
         }
     }
 }

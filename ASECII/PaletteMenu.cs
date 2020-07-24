@@ -29,12 +29,12 @@ namespace ASECII {
                         if (left) {
                             if (paletteModel.foregroundIndex != index) {
                                 //Don't want the color to flash between index and transparent
-                                if(mouse.left == MouseState.Pressed || (mouse.left == MouseState.Held && paletteModel.foregroundIndex != null)) {
+                                if(mouse.left == ClickState.Pressed || (mouse.left == ClickState.Held && paletteModel.foregroundIndex != null)) {
                                     paletteModel.foregroundIndex = index;
                                     spriteModel.brush.foreground = paletteModel.palette[index];
                                 }
 
-                            } else if(mouse.left == MouseState.Pressed) {
+                            } else if(mouse.left == ClickState.Pressed) {
                                 //Press the same color to deselect
                                 paletteModel.foregroundIndex = null;
                                 spriteModel.brush.foreground = Color.Transparent;
@@ -43,12 +43,12 @@ namespace ASECII {
                         if (right) {
                             if (paletteModel.backgroundIndex != index) {
                                 //Don't want the color to flash between index and transparent
-                                if (mouse.right == MouseState.Pressed || (mouse.right == MouseState.Held && paletteModel.backgroundIndex != null)) {
+                                if (mouse.right == ClickState.Pressed || (mouse.right == ClickState.Held && paletteModel.backgroundIndex != null)) {
                                     paletteModel.backgroundIndex = index;
                                     spriteModel.brush.background = paletteModel.palette[index];
                                 }
 
-                            } else if (mouse.right == MouseState.Pressed) {
+                            } else if (mouse.right == ClickState.Pressed) {
                                 //Press the same color to deselect
                                 paletteModel.backgroundIndex = null;
                                 spriteModel.brush.background = Color.Transparent;
@@ -63,7 +63,7 @@ namespace ASECII {
 
             return base.ProcessMouse(state);
         }
-        public override void Draw(TimeSpan timeElapsed) {
+        public override void Render(TimeSpan timeElapsed) {
             for(int i = 0; i < paletteModel.palette.Count; i++) {
                 this.SetCellAppearance(i % Width, i / Width, new ColoredGlyph(Color.Transparent, paletteModel.palette[i]));
             }
@@ -91,7 +91,7 @@ namespace ASECII {
                 }
             }
 
-            base.Draw(timeElapsed);
+            base.Render(timeElapsed);
         }
     }
     public class PaletteModel {
