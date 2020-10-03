@@ -24,7 +24,9 @@ namespace ASECII {
 
             int left = 0, top = 0, right = 0, bottom = 0;
             foreach(var layer in layers) {
-                foreach(var ((x, y), tile) in layer.cells) {
+                foreach(var (point, tile) in layer.cells) {
+                    var (x, y) = point + layer.pos;
+
                     left = Math.Min(left, x);
                     right = Math.Max(right, x);
                     top = Math.Min(top, x);

@@ -1,4 +1,5 @@
-﻿using Microsoft.Xna.Framework.Content;
+﻿using ArchConsole;
+using Microsoft.Xna.Framework.Content;
 using Newtonsoft.Json;
 using SadConsole;
 using SadConsole.Input;
@@ -12,7 +13,10 @@ using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Text;
+using ArchConsole;
 using static SadConsole.Input.Keys;
+using Microsoft.Xna.Framework.Graphics;
 
 namespace ASECII {
     class EditorMain : SadConsole.Console {
@@ -142,6 +146,12 @@ namespace ASECII {
                 UseMouse = true
             };
 
+            var layerMenu = new LayerMenu(16, 1, model) {
+                Position = new Point(0, 60),
+                FocusOnMouseClick = true,
+                UseMouse = true
+            };
+
             tileModel.UpdateIndexes(model);
             tileButton.UpdateActive();
 
@@ -158,6 +168,7 @@ namespace ASECII {
             this.Children.Add(backgroundButton);
             this.Children.Add(pickerMenu);
             this.Children.Add(colorBar);
+            this.Children.Add(layerMenu);
         }
         public override bool ProcessKeyboard(Keyboard info) {
             return base.ProcessKeyboard(info);
@@ -238,7 +249,7 @@ namespace ASECII {
 
             } else {
                 switch (model.mode) {
-                    case Mode.Edit:
+                    case Mode.Brush:
                         if (model.ticksSelect % 30 < 15) {
                             /*
                             if (model.selectRect.GetAdjustedRect(out Rectangle r)) {
@@ -252,8 +263,21 @@ namespace ASECII {
                                 this.SetCellAppearance(model.cursorScreen.X, model.cursorScreen.Y, model.brush.cell);
                             }
                         }
-                        
-
+                        break;
+                    case Mode.Erase:
+                        if (model.ticksSelect % 30 < 15) {
+                            /*
+                            if (model.selectRect.GetAdjustedRect(out Rectangle r)) {
+                                DrawRect(r);
+                            }
+                            */
+                            DrawSelection();
+                        }
+                        if ((model.ticks % 30) < 15) {
+                            if (IsMouseOver) {
+                                this.SetCellAppearance(model.cursorScreen.X, model.cursorScreen.Y, new ColoredGlyph(Color.Transparent, Color.Transparent));
+                            }
+                        }
                         break;
                     case Mode.Keyboard:
                         var c = model.brush.cell;
@@ -290,11 +314,11 @@ namespace ASECII {
 
 
                         //TO DO: Fix
-                        if (model.ticksSelect % 20 < 10 && model.move.current.HasValue) {
+                        if (model.ticksSelect % 10 < 5 && model.move.current.HasValue) {
                             var offset = model.move.end - model.move.start.Value;
 
-                            int x = model.move.start.Value.X;
-                            int y = model.move.start.Value.Y;
+                            int x = model.move.start.Value.X - camera.X;
+                            int y = model.move.start.Value.Y - camera.Y;
                             bool first = true;
                             if(Math.Abs(offset.X) > Math.Abs(offset.Y)) {
                                 DrawHorizontal();
@@ -333,15 +357,16 @@ namespace ASECII {
                                     });
                                 }
                                 //Body
-                                for (int i = 1; i < Math.Abs(offset.X) + 1; i++) {
+                                for (int i = 1; i < Math.Abs(offset.X); i++) {
                                     x += Math.Sign(offset.X);
                                     DrawBox(x, y, new BoxGlyph {
                                         e = Line.Double,
                                         w = Line.Double
                                     });
                                 }
+                                x += Math.Sign(offset.X);
                                 //End
-                                if(first) {
+                                if (first) {
                                     DrawBox(x, y, new BoxGlyph {
                                         e = offset.X < 0 ? Line.Double : offset.X == 0 ? Line.Single : Line.None,
                                         w = offset.X > 0 ? Line.Double : offset.X == 0 ? Line.Single : Line.None,
@@ -373,15 +398,16 @@ namespace ASECII {
                                     });
                                 }
                                 //Body
-                                for (int i = 1; i < Math.Abs(offset.Y) + 1; i++) {
+                                for (int i = 1; i < Math.Abs(offset.Y); i++) {
                                     y += Math.Sign(offset.Y);
                                     DrawBox(x, y, new BoxGlyph {
                                         n = Line.Double,
                                         s = Line.Double
                                     });
                                 }
+                                y += Math.Sign(offset.Y);
                                 //End
-                                if(first) {
+                                if (first) {
                                     DrawBox(x, y, new BoxGlyph {
                                         e = offset.X > 0 ? Line.Double : offset.X == 0 ? Line.Single : Line.None,
                                         w = offset.X < 0 ? Line.Double : offset.X == 0 ? Line.Single : Line.None,
@@ -529,15 +555,20 @@ namespace ASECII {
         }
         public override bool ProcessKeyboard(Keyboard info) {
             if (info.IsKeyPressed(Escape)) {
-                if(model.mode == Mode.Keyboard) {
+                if(model.mode != Mode.Read) {
                     model.ProcessKeyboard(info);
                 } else {
                     Parent.Parent.Children.Remove(Parent);
                 }
             } else if (info.IsKeyPressed(S) && info.IsKeyDown(LeftControl)) {
                 //File.WriteAllText(Path.Combine(Environment.CurrentDirectory, Path.GetFileName(Path.GetTempFileName())), JsonConvert.SerializeObject(model));
-                var s = SadConsole.Game.Instance.Screen;
-                s.Children.Add(new FileMenu(s.Width, s.Height, new SaveMode(model)));
+                
+                if(model.filepath == null || info.IsKeyDown(LeftShift)) {
+                    var s = SadConsole.Game.Instance.Screen;
+                    s.Children.Add(new FileMenu(s.Width, s.Height, new SaveMode(model)));
+                } else {
+                    model.Save();
+                }
             } else {
                 model.ProcessKeyboard(info);
             }
@@ -550,7 +581,7 @@ namespace ASECII {
         }
     }
     public enum Mode {
-        Edit, SelectRect, SelectCircle, SelectLasso, SelectPoly, SelectWand, Move, Keyboard
+        Read, Brush, Fill, Pick, Erase, SelectRect, SelectCircle, SelectLasso, SelectPoly, SelectWand, Move, Keyboard
     }
     [JsonObject(MemberSerialization.Fields)]
     public class SpriteModel {
@@ -566,6 +597,9 @@ namespace ASECII {
         public TileModel tiles;
         public PaletteModel palette;
         public BrushMode brush;
+        public FillMode fill;
+        public PickMode pick;
+        public EraseMode erase;
         public KeyboardMode keyboard;
         public MoveMode move;
         public Selection selection;
@@ -594,13 +628,35 @@ namespace ASECII {
             tiles = new TileModel();
             palette = new PaletteModel();
             brush = new BrushMode(this);
+            fill = new FillMode(this);
+            pick = new PickMode(this);
+            erase = new EraseMode(this);
             keyboard = new KeyboardMode(this);
             selection = new Selection();
             selectRect = new SelectRectMode(this, selection);
             pan = new PanMode(this);
             Undo = new LinkedList<SingleEdit>();
             Redo = new LinkedList<SingleEdit>();
-            mode = Mode.Edit;
+            mode = Mode.Brush;
+        }
+        public void Save() {
+            STypeConverter.PrepareConvert();
+            File.WriteAllText(filepath, JsonConvert.SerializeObject(this, SFileMode.settings));
+
+
+            var preview = sprite.preview;
+            StringBuilder str = new StringBuilder();
+            for (int y = sprite.origin.Y; y <= sprite.end.Y; y++) {
+                for (int x = sprite.origin.X; x <= sprite.end.X; x++) {
+                    if (preview.TryGetValue((x, y), out var tile)) {
+                        str.Append((char)tile.Glyph);
+                    } else {
+                        str.Append(' ');
+                    }
+                }
+                str.AppendLine();
+            }
+            File.WriteAllText($"{filepath}.txt", str.ToString());
         }
         public bool InBounds(Point p) => (p.X > -1 && p.X < width && p.Y > -1 && p.Y < height);
         public bool IsEditable(Point p) {
@@ -639,13 +695,35 @@ namespace ASECII {
             }
             if (mode == Mode.Keyboard) {
                 if(info.IsKeyPressed(Escape)) {
-                    mode = Mode.Edit;
+                    mode = Mode.Brush;
                 } else {
                     keyboard.ProcessKeyboard(info);
                 }
             } else {
-                if (info.IsKeyPressed(Space)) {
-                    if(!pan.allowPan) {
+                if (info.IsKeyPressed(Escape)) {
+                    switch (mode) {
+                        case Mode.Read:
+                            //Not supposed to happen since we exit
+                            break;
+                        case Mode.Brush:
+                            ExitMode();
+                            mode = Mode.Read;
+                            break;
+                        case Mode.Fill:
+                            ExitMode();
+                            mode = Mode.Brush;
+                            break;
+                        case Mode.Pick:
+                            ExitMode();
+                            mode = Mode.Brush;
+                            break;
+                        default:
+                            ExitMode();
+                            mode = Mode.Brush;
+                            break;
+                    }
+                } else if (info.IsKeyPressed(Space)) {
+                    if (!pan.allowPan) {
                         pan.allowPan = true;
                         pan.startPan = cursor;
                     }
@@ -654,30 +732,41 @@ namespace ASECII {
                     camera -= pan.offsetPan;
                     pan.startPan = new Point(0, 0);
                     pan.offsetPan = new Point(0, 0);
-                } else if(info.IsKeyPressed(T)) {
+                } else if (info.IsKeyPressed(B)) {
+                    ExitMode();
+                    mode = Mode.Brush;
+                } else if(info.IsKeyPressed(E)) {
+                    ExitMode();
+                    mode = Mode.Erase;
+                } else if(info.IsKeyPressed(M)) {
+                    ExitMode();
+                    if(selection.Exists) {
+                        var moveLayer = Cut(selection.GetAll());
+                        if (currentLayer == sprite.layers.Count - 1) {
+                            sprite.layers.Add(moveLayer);
+                            currentLayer++;
+                        } else {
+                            currentLayer++;
+                            sprite.layers.Insert(currentLayer, moveLayer);
+                        }
+                        move = new MoveMode(this, selection, currentLayer, moveLayer);
+                        mode = Mode.Move;
+                    } else {
+                        var moveLayer = sprite.layers[currentLayer];
+                        sprite.layers.Insert(currentLayer, new Layer());
+                        currentLayer++;
+                        move = new MoveMode(this, selection, currentLayer, moveLayer);
+                        mode = Mode.Move;
+                    }
+                } else if (info.IsKeyPressed(S) && !info.IsKeyDown(LeftControl)) {
+                    ExitMode();
+                    mode = Mode.SelectRect;
+                } else if (info.IsKeyPressed(T)) {
                     ExitMode();
                     mode = Mode.Keyboard;
                     keyboard.keyCursor = null;
                     //keyboard.keyCursor = cursor;
                     //keyboard.margin = cursor;
-                } else if(info.IsKeyPressed(S) && !info.IsKeyDown(LeftControl)) {
-                    ExitMode();
-                    mode = Mode.SelectRect;
-                } else if(info.IsKeyPressed(B)) {
-                    ExitMode();
-                    mode = Mode.Edit;
-                } else if(info.IsKeyPressed(M)) {
-                    ExitMode();
-                    var moveLayer = Cut(selection.GetAll());
-                    if(currentLayer == sprite.layers.Count - 1) {
-                        sprite.layers.Add(moveLayer);
-                        currentLayer++;
-                    } else {
-                        currentLayer++;
-                        sprite.layers.Insert(currentLayer, moveLayer);
-                    }
-                    move = new MoveMode(this, selection, currentLayer, moveLayer);
-                    mode = Mode.Move;
                 }
 
                 if (pan.allowPan) {
@@ -717,8 +806,16 @@ namespace ASECII {
                 pan.ProcessMouse(state);
             } else {
                 switch (mode) {
-                    case Mode.Edit:
+                    case Mode.Brush:
                         brush.ProcessMouse(state, IsMouseOver);
+                        break;
+                    case Mode.Fill:
+                        fill.ProcessMouse(state, IsMouseOver);
+                    case Mode.Pick:
+                        pick.ProcessMouse(state, IsMouseOver);
+                        break;
+                    case Mode.Erase:
+                        erase.ProcessMouse(state, IsMouseOver);
                         break;
                     case Mode.SelectRect:
                         selectRect.ProcessMouse(state);
@@ -856,6 +953,82 @@ namespace ASECII {
             model.AddAction(action);
         }
     }
+    [JsonObject(MemberSerialization.Fields)]
+    public class FillMode {
+        public SpriteModel model;
+        public MouseWatch mouse;
+        public FillMode(SpriteModel model) {
+            this.model = model;
+            mouse = new MouseWatch();
+        }
+
+    }
+    [JsonObject(MemberSerialization.Fields)]
+    public class PickMode {
+        public SpriteModel model;
+        public MouseWatch mouse;
+        public PickMode(SpriteModel model) {
+            this.model = model;
+            mouse = new MouseWatch();
+        }
+
+        public void ProcessMouse(MouseScreenObjectState state, bool IsMouseOver) {
+            mouse.Update(state, IsMouseOver);
+            if (state.IsOnScreenObject) {
+                if (state.Mouse.LeftButtonDown && mouse.leftPressedOnScreen) {
+                    var layer = model.sprite.layers[model.currentLayer];
+                    var t = layer[model.cursor];
+                    if(t is TileIndex ti) {
+                        model.tiles.brushIndex = ti.index;
+                    } else if(t is TilePalette tp) {
+                        model.palette.foregroundIndex = tp.foregroundIndex;
+                        model.palette.backgroundIndex = tp.backgroundIndex;
+                    }
+                    model.brush.foreground = t.Foreground;
+                    model.brush.background = t.Background;
+                    model.brush.glyph = t.Glyph;
+                }
+            }
+        }
+    }
+    [JsonObject(MemberSerialization.Fields)]
+    public class EraseMode {
+        public SpriteModel model;
+        public MouseWatch mouse;
+        public EraseMode(SpriteModel model) {
+            this.model = model;
+            mouse = new MouseWatch();
+        }
+
+        public void ProcessMouse(MouseScreenObjectState state, bool IsMouseOver) {
+            mouse.Update(state, IsMouseOver);
+            if (state.IsOnScreenObject) {
+                if (state.Mouse.LeftButtonDown && mouse.leftPressedOnScreen) {
+                    var prev = model.prevCell;
+                    var offset = (model.cursor - prev);
+                    var length = offset.Length();
+
+                    var (xNorm, yNorm) = (offset.X / length, offset.Y / length);
+                    for (int i = 0; i < length; i++) {
+
+                        var p = prev + new Point((int)(i * xNorm), (int)(i * yNorm));
+                        if (model.IsEditable(p)) {
+                            Place(p);
+                        }
+                    }
+
+                    if (model.IsEditable(model.cursor)) {
+                        Place(model.cursor);
+                    }
+                }
+            }
+        }
+        void Place(Point p) {
+            var layer = model.sprite.layers[model.currentLayer];
+            SingleEdit action = new SingleEdit(p, layer, null);
+            model.AddAction(action);
+        }
+    }
     public class KeyboardMode {
         public SpriteModel model;
         public Point? keyCursor;
@@ -890,7 +1063,11 @@ namespace ASECII {
 
             ref var sprite = ref model.sprite;
             ref var brush = ref model.brush;
+
             var pressed = info.KeysPressed.Where(k => k.Character != 0);
+            if (info.KeysPressed.Select(p => p.Key).Intersect(new Keys[] { Keys.Up, Keys.Left, Keys.Right, Keys.Down }).Any()) {
+                pressed = info.KeysDown.Where(k => k.Character != 0);
+            }
             if (pressed.Any()) {
                 char c = pressed.First().Character;
                 var p = keyCursor ?? model.cursor;
@@ -905,7 +1082,7 @@ namespace ASECII {
                     }
                 }
 
-            } else if (info.IsKeyPressed(Back)) {
+            } else if (info.IsKeyDown(Back)) {
                 var layer = sprite.layers[0];
                 var p = keyCursor ?? model.cursor;
                 var action = new SingleEdit(p, layer, null);
@@ -964,6 +1141,7 @@ namespace ASECII {
     public class Selection {
         public HashSet<Rectangle> rects;
         public HashSet<Point> points;
+        public bool Exists => rects.Any() || points.Any();
         public Selection() {
             rects = new HashSet<Rectangle>();
             points = new HashSet<Point>();
@@ -1020,6 +1198,9 @@ namespace ASECII {
                     if (start != end) {
                         //selection.rects.Clear();
                         selection.rects.Add(rect.Value);
+                    } else {
+                        selection.points.Clear();
+                        selection.rects.Clear();
                     }
                     rect = null;
                 }

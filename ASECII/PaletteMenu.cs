@@ -4,6 +4,7 @@ using SadConsole.Input;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using ArchConsole;
 
 namespace ASECII {
     public class PaletteMenu : SadConsole.Console {

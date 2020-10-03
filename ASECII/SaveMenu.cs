@@ -36,24 +36,7 @@ namespace ASECII {
         }
         public void Enter(Console console, string text) {
             model.filepath = text;
-
-            STypeConverter.PrepareConvert();
-            File.WriteAllText(text, JsonConvert.SerializeObject(model, SFileMode.settings));
-
-            var preview = model.sprite.preview;
-            StringBuilder str = new StringBuilder();
-            for (int y = model.sprite.origin.Y; y <= model.sprite.end.Y; y++) {
-                for (int x = model.sprite.origin.X; x <= model.sprite.end.X; x++) {
-                    if(preview.TryGetValue((x, y), out var tile)) {
-                        str.Append((char)tile.Glyph);
-                    } else {
-                        str.Append(' ');
-                    }
-                }
-                str.AppendLine();
-            }
-            File.WriteAllText($"{text}.txt", str.ToString());
-
+            model.Save();
             console.Parent.Children.Remove(console);
         }
     }
@@ -100,6 +83,7 @@ namespace ASECII {
 
             DefaultBackground = Color.Black;
 
+
             this.recentFiles = recentFiles;
             this.preloaded = new Dictionary<string, SpriteModel>();
             this.recentListing = new List<Button>();
@@ -138,11 +122,11 @@ namespace ASECII {
             textbox.TextChanged += (e, args) => {
                 UpdateListing(textbox.Text);
             };
-            this.ControlHostComponent.Add(textbox);
+            this.Controls.Add(textbox);
             UpdateListing(textbox.Text);
         }
         public void UpdateListing(string filepath) {
-            folderListing.ForEach(b => this.ControlHostComponent.Remove(b));
+            folderListing.ForEach(b => this.Controls.Remove(b));
             folderListing.Clear();
             int i = 2;
             if (string.IsNullOrWhiteSpace(filepath)) {
@@ -210,7 +194,7 @@ namespace ASECII {
                 }
             }
             foreach (var button in folderListing) {
-                this.ControlHostComponent.Add(button);
+                this.Controls.Add(button);
             }
 
             void ShowDirectories(IEnumerable<string> directories) {
@@ -252,7 +236,7 @@ namespace ASECII {
                     try {
                         STypeConverter.PrepareConvert();
                         var model = JsonConvert.DeserializeObject<SpriteModel>(File.ReadAllText(file), SFileMode.settings);
-                        if(model.filepath == null) {
+                        if(model?.filepath == null) {
                             preloaded[file] = null;
                             hoveredFile = null;
                             return;
@@ -277,7 +261,7 @@ namespace ASECII {
                     this.SetBackground(x, y, (x + y) % 2 == 0 ? c1 : c2);
                 }
             }
-            if (hoveredFile != null) {
+            if (hoveredFile != null && hoveredFile.sprite != null) {
 
                 var previewX = 33;
                 var previewY = 3;

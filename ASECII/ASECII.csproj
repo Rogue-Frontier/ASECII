@@ -63,8 +63,14 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="SadConsole" Version="9.0.0-alpha8" />
-    <PackageReference Include="SadConsole.Host.MonoGame" Version="9.0.0-alpha8" />
+    <PackageReference Include="SadConsole" Version="9.0.0-beta1" />
+    <PackageReference Include="SadConsole.Host.MonoGame" Version="9.0.0-beta1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="ArchConsole">
+      <HintPath>..\..\ArchConsole\ArchConsole\bin\Debug\netstandard2.1\ArchConsole.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
   <ItemGroup>
