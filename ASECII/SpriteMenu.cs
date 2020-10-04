@@ -52,37 +52,71 @@ namespace ASECII {
                 FocusOnMouseClick = true,
                 UseMouse = true
             };
-            ActiveColorButton foregroundButton = null, backgroundButton = null;
-            foregroundButton = new ActiveColorButton("Add Foreground", () => {
+
+            ColorLabel foregroundLabel = new ColorLabel(14, () => model.brush.foreground) {
+                Position = new Point(1, 29)
+            };
+            ColorLabel backgroundLabel = new ColorLabel(14, () => model.brush.background) {
+                Position = new Point(1, 30)
+            };
+
+            CellButton foregroundAddButton = null, backgroundAddButton = null;
+            CellButton foregroundRemoveButton = null, backgroundRemoveButton = null;
+
+            foregroundAddButton = new CellButton(() => {
                 return paletteModel.foregroundIndex == null;
             }, () => {
-                return model.brush.cell.Foreground;
-            },() => {
                 paletteModel.AddColor(model.brush.foreground);
                 paletteModel.UpdateIndexes(model);
 
                 PaletteChanged();
-            }) {
-                Position = new Point(0, 29),
+            }, '+') {
+                Position = new Point(15, 29),
                 FocusOnMouseClick = true,
                 UseMouse = true
             };
-            backgroundButton = new ActiveColorButton("Add Background", () => {
+            backgroundAddButton = new CellButton(() => {
                 return paletteModel.backgroundIndex == null;
-            }, () => {
-                return model.brush.cell.Background;
             }, () => {
                 paletteModel.AddColor(model.brush.background);
                 paletteModel.UpdateIndexes(model);
                 PaletteChanged();
-            }) {
+            }, '+') {
+                Position = new Point(15, 30),
+                FocusOnMouseClick = true,
+                UseMouse = true
+            };
+
+            foregroundRemoveButton = new CellButton(() => {
+                return paletteModel.foregroundIndex != null;
+            }, () => {
+                paletteModel.RemoveColor(model.brush.foreground);
+                paletteModel.UpdateIndexes(model);
+
+                PaletteChanged();
+            }, '-') {
+                Position = new Point(0, 29),
+                FocusOnMouseClick = true,
+                UseMouse = true
+            };
+            backgroundRemoveButton = new CellButton(() => {
+                return paletteModel.backgroundIndex != null;
+            }, () => {
+                paletteModel.RemoveColor(model.brush.background);
+                paletteModel.UpdateIndexes(model);
+                PaletteChanged();
+            }, '-') {
                 Position = new Point(0, 30),
                 FocusOnMouseClick = true,
                 UseMouse = true
             };
+
             void PaletteChanged() {
-                foregroundButton.UpdateActive();
-                backgroundButton.UpdateActive();
+                foregroundAddButton.UpdateActive();
+                backgroundAddButton.UpdateActive();
+
+                foregroundRemoveButton.UpdateActive();
+                backgroundRemoveButton.UpdateActive();
 
                 pickerModel.UpdateColors();
                 pickerModel.UpdateBrushPoints(paletteModel);
@@ -98,8 +132,10 @@ namespace ASECII {
                 tileButton.UpdateActive();
                 
                 paletteModel.UpdateIndexes(model);
-                foregroundButton.UpdateActive();
-                backgroundButton.UpdateActive();
+                foregroundAddButton.UpdateActive();
+                backgroundAddButton.UpdateActive();
+                foregroundRemoveButton.UpdateActive();
+                backgroundRemoveButton.UpdateActive();
 
                 pickerModel.UpdateColors();
                 pickerModel.UpdateBrushPoints(paletteModel);
@@ -124,8 +160,10 @@ namespace ASECII {
                 tileModel.UpdateIndexes(model);
                 tileButton.UpdateActive();
 
-                foregroundButton.UpdateActive();
-                backgroundButton.UpdateActive();
+                foregroundAddButton.UpdateActive();
+                backgroundAddButton.UpdateActive();
+                foregroundRemoveButton.UpdateActive();
+                backgroundRemoveButton.UpdateActive();
 
                 pickerModel.UpdateBrushPoints(paletteModel);
 
@@ -142,8 +180,11 @@ namespace ASECII {
                 tileButton.UpdateActive();
 
                 paletteModel.UpdateIndexes(model);
-                foregroundButton.UpdateActive();
-                backgroundButton.UpdateActive();
+
+                foregroundAddButton.UpdateActive();
+                backgroundAddButton.UpdateActive();
+                foregroundRemoveButton.UpdateActive();
+                backgroundRemoveButton.UpdateActive();
             }) {
                 Position = new Point(0, 31),
                 FocusOnMouseClick = true,
@@ -161,7 +202,7 @@ namespace ASECII {
                 UseMouse = true
             };
             var layerAddButton = new LabelButton("Add Layer", () => {
-                model.sprite.layers.Insert(model.currentLayer + 1, new Layer());
+                model.sprite.layers.Insert(model.currentLayer + 1, new Layer() { name = $"Layer {model.sprite.layers.Count}" });
                 layerMenu.UpdateListing();
             }) {
                 Position = new Point(0, 77),
@@ -188,8 +229,10 @@ namespace ASECII {
             tileButton.UpdateActive();
 
             paletteModel.UpdateIndexes(model);
-            foregroundButton.UpdateActive();
-            backgroundButton.UpdateActive();
+            foregroundAddButton.UpdateActive();
+            backgroundAddButton.UpdateActive();
+            foregroundRemoveButton.UpdateActive();
+            backgroundRemoveButton.UpdateActive();
             layerCutButton.UpdateActive();
 
             this.Children.Add(tileMenu);
@@ -197,8 +240,12 @@ namespace ASECII {
             this.Children.Add(spriteMenu);
             this.Children.Add(glyphMenu);
             this.Children.Add(paletteMenu);
-            this.Children.Add(foregroundButton);
-            this.Children.Add(backgroundButton);
+            this.Children.Add(foregroundLabel);
+            this.Children.Add(foregroundAddButton);
+            this.Children.Add(foregroundRemoveButton);
+            this.Children.Add(backgroundLabel);
+            this.Children.Add(backgroundAddButton);
+            this.Children.Add(backgroundRemoveButton);
             this.Children.Add(pickerMenu);
             this.Children.Add(colorBar);
             this.Children.Add(layerMenu);
@@ -826,7 +873,7 @@ namespace ASECII {
                         mode = Mode.Move;
                     } else {
                         var moveLayer = sprite.layers[currentLayer];
-                        sprite.layers.Insert(currentLayer, new Layer());
+                        sprite.layers.Insert(currentLayer, new Layer() { name = "Move" });
                         currentLayer++;
                         move = new MoveMode(this, selection, currentLayer, moveLayer);
                         mode = Mode.Move;
@@ -865,7 +912,7 @@ namespace ASECII {
             }
         }
         public Layer Cut(HashSet<Point> points) {
-            Layer result = new Layer();
+            Layer result = new Layer() { name = $"Layer {sprite.layers.Count}" };
             foreach(var point in points) {
                 result[point] = sprite.layers[currentLayer][point];
                 sprite.layers[currentLayer][point] = null;

@@ -58,6 +58,8 @@ namespace ASECII {
         public Point pos;
         public bool visible;
         public Dictionary<(int, int), TileRef> cells;
+
+        public string name = "Layer 0";
         public Layer() {
             pos = new Point(0, 0);
             visible = true;

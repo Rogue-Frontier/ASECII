@@ -65,6 +65,7 @@ namespace ASECII {
             return base.ProcessMouse(state);
         }
         public override void Render(TimeSpan timeElapsed) {
+            this.Clear();
             for(int i = 0; i < paletteModel.palette.Count; i++) {
                 this.SetCellAppearance(i % Width, i / Width, new ColoredGlyph(Color.Transparent, paletteModel.palette[i]));
             }
@@ -104,6 +105,10 @@ namespace ASECII {
         public void AddColor(Color c) {
             palette.Add(c);
             paletteSet.Add(c);
+        }
+        public void RemoveColor(Color c) {
+            palette.Remove(c);
+            paletteSet.Remove(c);
         }
         public void UpdateIndexes(SpriteModel spriteModel) {
             var p = palette;

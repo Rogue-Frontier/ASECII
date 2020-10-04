@@ -20,39 +20,58 @@ namespace ASECII {
             foreach (var l in layers) {
                 int index = i;
 
-                this.Children.Add(new ColorCellButton(() => l.visible ? Color.White : Color.Black,
+                this.Children.Add(new CellButton(() => true,
                     () => {
                         l.visible = !l.visible;
                     }, 'V') {
                     Position = new Point(0, index)
-                }) ;
+                });
 
-                if (index < layers.Count - 1) {
-                    this.Children.Add(new ColorCellButton(() => Color.White,
-                        () => {
-                            layers.RemoveAt(index);
-                            layers.Insert(index + 1, l);
-                            UpdateListing();
-                        }, '-') {
-                        Position = new Point(10, index)
-                    });
-                }
+                this.Children.Add(new CellButton(() => index < layers.Count - 1,
+                    () => {
+                        layers.RemoveAt(index);
+                        layers.Insert(index + 1, l);
+                        UpdateListing();
+                    }, '-') {
+                    Position = new Point(2, index)
+                });
 
-                if (index > 0) {
-                    this.Children.Add(new ColorCellButton(() => Color.White,
+                this.Children.Add(new CellButton(() => index > 0,
                         () => {
                             layers.RemoveAt(index);
                             layers.Insert(index - 1, l);
                             UpdateListing();
                         }, '+') {
-                        Position = new Point(11, index)
-                    });
-                }
+                    Position = new Point(3, index)
+                });
 
-                this.Children.Add(new ColorButton($"Layer {index}",
+                this.Children.Add(new ColorButton(l.name,
                     () => model.currentLayer == index ? Color.Yellow : Color.White,
                     () => model.currentLayer = index) {
-                Position = new Point(2, index)
+                    Position = new Point(5, index)
+                });
+
+                this.Children.Add(new CellButton(() => index > 0,
+                    () => {
+                        var below = layers[index - 1];
+
+                        //Flatten 
+                        foreach ((var p, var t) in l.cells) {
+                            below[p] = t;
+                        }
+
+                        layers.RemoveAt(index);
+                        UpdateListing();
+                    }, 'F') {
+                    Position = new Point(13, index)
+                });
+
+                this.Children.Add(new CellButton(() => model.sprite.layers.Count > 1,
+                        () => {
+                            layers.RemoveAt(index);
+                            UpdateListing();
+                        }, 'X') {
+                    Position = new Point(15, index)
                 });
                 i++;
             }
