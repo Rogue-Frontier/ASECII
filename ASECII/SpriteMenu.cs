@@ -37,40 +37,46 @@ namespace ASECII {
             pickerModel.UpdateBrushPoints(paletteModel);
             pickerModel.UpdatePalettePoints(paletteModel);
 
-            CellButton tileButton = null;
-            tileButton = new CellButton(() => {
+            ActiveColorButton tileButton = null;
+            tileButton = new ActiveColorButton("Add Tile", () => {
                 var c = model.brush.cell;
                 return tileModel.brushIndex == null;
+            }, () => {
+                return model.brush.cell.Background;
             }, () => {
                 tileModel.AddTile(model.brush.cell);
                 tileModel.UpdateIndexes(model);
                 tileButton.UpdateActive();
             }) {
-                Position = new Point(15, 3),
+                Position = new Point(0, 9),
                 FocusOnMouseClick = true,
                 UseMouse = true
             };
-            CellButton foregroundButton = null, backgroundButton = null;
-            foregroundButton = new CellButton(() => {
+            ActiveColorButton foregroundButton = null, backgroundButton = null;
+            foregroundButton = new ActiveColorButton("Add Foreground", () => {
                 return paletteModel.foregroundIndex == null;
             }, () => {
+                return model.brush.cell.Foreground;
+            },() => {
                 paletteModel.AddColor(model.brush.foreground);
                 paletteModel.UpdateIndexes(model);
 
                 PaletteChanged();
             }) {
-                Position = new Point(15, 27),
+                Position = new Point(0, 29),
                 FocusOnMouseClick = true,
                 UseMouse = true
             };
-            backgroundButton = new CellButton(() => {
+            backgroundButton = new ActiveColorButton("Add Background", () => {
                 return paletteModel.backgroundIndex == null;
+            }, () => {
+                return model.brush.cell.Background;
             }, () => {
                 paletteModel.AddColor(model.brush.background);
                 paletteModel.UpdateIndexes(model);
                 PaletteChanged();
             }) {
-                Position = new Point(14, 27),
+                Position = new Point(0, 30),
                 FocusOnMouseClick = true,
                 UseMouse = true
             };
@@ -107,7 +113,7 @@ namespace ASECII {
                 tileModel.UpdateIndexes(model);
                 tileButton.UpdateActive();
             }) {
-                Position = new Point(0, 8),
+                Position = new Point(0, 9),
                 FocusOnMouseClick = true,
                 UseMouse = true
             };
@@ -124,7 +130,7 @@ namespace ASECII {
                 pickerModel.UpdateBrushPoints(paletteModel);
                 pickerModel.UpdatePalettePoints(paletteModel);
             }) {
-                Position = new Point(0, 24),
+                Position = new Point(0, 25),
                 FocusOnMouseClick = true,
                 UseMouse = true
             };
@@ -136,23 +142,44 @@ namespace ASECII {
                 foregroundButton.UpdateActive();
                 backgroundButton.UpdateActive();
             }) {
-                Position = new Point(0, 28),
+                Position = new Point(0, 31),
                 FocusOnMouseClick = true,
                 UseMouse = true
             };
             var colorBar = new ColorBar(16, 1, paletteModel, pickerModel) {
-                Position = new Point(0, 44),
+                Position = new Point(0, 47),
                 FocusOnMouseClick = true,
                 UseMouse = true
             };
             
-            var layerMenu = new LayerMenu(16, 1, model) {
+            var layerMenu = new LayerMenu(16, 16, model) {
                 Position = new Point(0, 61),
                 FocusOnMouseClick = true,
                 UseMouse = true
             };
+            var layerAddButton = new LabelButton("Add Layer", () => {
+                model.sprite.layers.Insert(model.currentLayer + 1, new Layer());
+                layerMenu.UpdateListing();
+            }) {
+                Position = new Point(0, 77),
+                FocusOnMouseClick = true,
+                UseMouse = true
+            };
+
+            var layerCutButton = new ActiveLabelButton("Selection to Layer", () => model.selection.Exists, () => {
+                model.SelectionToLayer();
+                layerMenu.UpdateListing();
+            }) {
+                Position = new Point(0, 78),
+                FocusOnMouseClick = true,
+                UseMouse = true
+            };
+
+            model.selection.selectionChanged += layerCutButton.UpdateActive;
 
             //No per-color transparency; layer-based only
+
+            layerMenu.UpdateListing();
 
             tileModel.UpdateIndexes(model);
             tileButton.UpdateActive();
@@ -160,6 +187,7 @@ namespace ASECII {
             paletteModel.UpdateIndexes(model);
             foregroundButton.UpdateActive();
             backgroundButton.UpdateActive();
+            layerCutButton.UpdateActive();
 
             this.Children.Add(tileMenu);
             this.Children.Add(tileButton);
@@ -171,6 +199,8 @@ namespace ASECII {
             this.Children.Add(pickerMenu);
             this.Children.Add(colorBar);
             this.Children.Add(layerMenu);
+            this.Children.Add(layerAddButton);
+            this.Children.Add(layerCutButton);
         }
         public override bool ProcessKeyboard(Keyboard info) {
             return base.ProcessKeyboard(info);
@@ -618,6 +648,7 @@ namespace ASECII {
         public EraseMode erase;
         public KeyboardMode keyboard;
         public MoveMode move;
+
         public Selection selection;
         public SelectRectMode selectRect;
         public SelectWandMode selectWand;
@@ -656,6 +687,7 @@ namespace ASECII {
             Undo = new LinkedList<Edit>();
             Redo = new LinkedList<Edit>();
             mode = Mode.Brush;
+
         }
         public void Save(Console renderer) {
             STypeConverter.PrepareConvert();
@@ -786,14 +818,7 @@ namespace ASECII {
                 } else if (info.IsKeyPressed(M)) {
                     ExitMode();
                     if (selection.Exists) {
-                        var moveLayer = Cut(selection.GetAll());
-                        if (currentLayer == sprite.layers.Count - 1) {
-                            sprite.layers.Add(moveLayer);
-                            currentLayer++;
-                        } else {
-                            currentLayer++;
-                            sprite.layers.Insert(currentLayer, moveLayer);
-                        }
+                        var moveLayer = SelectionToLayer();
                         move = new MoveMode(this, selection, currentLayer, moveLayer);
                         mode = Mode.Move;
                     } else {
@@ -843,6 +868,17 @@ namespace ASECII {
                 sprite.layers[currentLayer][point] = null;
             }
             return result;
+        }
+        public Layer SelectionToLayer() {
+            var layer = Cut(selection.GetAll());
+            if (currentLayer == sprite.layers.Count - 1) {
+                sprite.layers.Add(layer);
+                currentLayer++;
+            } else {
+                currentLayer++;
+                sprite.layers.Insert(currentLayer, layer);
+            };
+            return layer;
         }
         public void ProcessMouse(MouseScreenObjectState state, bool IsMouseOver) {
             cursorScreen = state.SurfaceCellPosition;
@@ -1253,6 +1289,9 @@ namespace ASECII {
         public HashSet<Rectangle> rects;
         public HashSet<Point> points;
         public bool Exists => rects.Any() || points.Any();
+
+        public delegate void SelectionChanged();
+        public event SelectionChanged selectionChanged;
         public Selection() {
             rects = new HashSet<Rectangle>();
             points = new HashSet<Point>();
@@ -1272,6 +1311,9 @@ namespace ASECII {
         public void Offset(Point offset) {
             rects = new HashSet<Rectangle>(rects.Select(r => new Rectangle(r.X + offset.X, r.Y + offset.Y, r.Width, r.Height)));
             points = new HashSet<Point>(points.Select(p => p + offset));
+        }
+        public void Changed() {
+            selectionChanged.Invoke();
         }
         public void Clear() {
             points.Clear();
@@ -1327,6 +1369,8 @@ namespace ASECII {
                         } else {
                             selection.rects.Add(rect.Value);
                         }
+
+                        selection.Changed();
                     }
                     rect = null;
                 }

@@ -24,6 +24,9 @@ namespace ASECII {
 
             int left = 0, top = 0, right = 0, bottom = 0;
             foreach(var layer in layers) {
+                if(!layer.visible) {
+                    continue;
+                }
                 foreach(var (point, tile) in layer.cells) {
                     var (x, y) = point + layer.pos;
 
@@ -53,9 +56,11 @@ namespace ASECII {
     }
     public class Layer {
         public Point pos;
+        public bool visible;
         public Dictionary<(int, int), TileRef> cells;
         public Layer() {
             pos = new Point(0, 0);
+            visible = true;
             cells = new Dictionary<(int, int), TileRef>();
         }
         public HashSet<Point> GetGlobalFill((Color, Color, int)? source, Point origin, Point end) {
