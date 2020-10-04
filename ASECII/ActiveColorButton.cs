@@ -7,7 +7,17 @@ using System.Text;
 
 using SadRogue.Primitives;
 namespace ASECII {
-
+    public class ColorLabel : SadConsole.Console {
+        Func<Color> color;
+        public ColorLabel(int width, Func<Color> color) : base(width, 1) {
+            this.color = color;
+        }
+        public override void Render(TimeSpan timeElapsed) {
+            var b = color();
+            this.Print(0, 0, new string(' ', Width), Color.Transparent, b);
+            base.Render(timeElapsed);
+        }
+    }
     public class ColorCellButton : SadConsole.Console {
         Func<Color> color;
         Action click;

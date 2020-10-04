@@ -117,6 +117,9 @@ namespace ASECII {
                 FocusOnMouseClick = true,
                 UseMouse = true
             };
+
+            //Add window to display all unique colors used
+
             var paletteMenu = new PaletteMenu(16, 4, model, paletteModel, () => {
                 tileModel.UpdateIndexes(model);
                 tileButton.UpdateActive();

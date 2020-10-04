@@ -16,20 +16,43 @@ namespace ASECII {
         public void UpdateListing() {
             this.Children.Clear();
             int i = 0;
-            foreach(var l in model.sprite.layers) {
+            var layers = model.sprite.layers;
+            foreach (var l in layers) {
                 int index = i;
 
                 this.Children.Add(new ColorCellButton(() => l.visible ? Color.White : Color.Black,
                     () => {
                         l.visible = !l.visible;
                     }, 'V') {
-                    Position = new Point(0, i)
+                    Position = new Point(0, index)
                 }) ;
 
-                this.Children.Add(new ColorButton($"Layer {i}",
+                if (index < layers.Count - 1) {
+                    this.Children.Add(new ColorCellButton(() => Color.White,
+                        () => {
+                            layers.RemoveAt(index);
+                            layers.Insert(index + 1, l);
+                            UpdateListing();
+                        }, '-') {
+                        Position = new Point(10, index)
+                    });
+                }
+
+                if (index > 0) {
+                    this.Children.Add(new ColorCellButton(() => Color.White,
+                        () => {
+                            layers.RemoveAt(index);
+                            layers.Insert(index - 1, l);
+                            UpdateListing();
+                        }, '+') {
+                        Position = new Point(11, index)
+                    });
+                }
+
+                this.Children.Add(new ColorButton($"Layer {index}",
                     () => model.currentLayer == index ? Color.Yellow : Color.White,
                     () => model.currentLayer = index) {
-                Position = new Point(2, i)
+                Position = new Point(2, index)
                 });
                 i++;
             }
