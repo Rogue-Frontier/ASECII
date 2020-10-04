@@ -58,6 +58,53 @@ namespace ASECII {
             pos = new Point(0, 0);
             cells = new Dictionary<(int, int), TileRef>();
         }
+        public HashSet<Point> GetGlobalFill((Color, Color, int)? source, Point origin, Point end) {
+            HashSet<Point> affected = new HashSet<Point>();
+            foreach (var p in new Rectangle(origin, end).Positions()) {
+                var pt = this[p];
+                var pg = pt != null ? (pt.Foreground, pt.Background, pt.Glyph) : (Color.Transparent, Color.Transparent, 0);
+                if (pg == source) {
+                    affected.Add(p);
+                }
+            }
+            return affected;
+        }
+        public HashSet<Point> GetFloodFill((int, int) start, (Color, Color, int)? source, Point origin, Point end) {
+            HashSet<(int, int)> visited = new HashSet<(int, int)>();
+            HashSet<Point> affected = new HashSet<Point>();
+            Queue<(int, int)> next = new Queue<(int, int)>();
+
+            next.Enqueue(start);
+            while (next.Any()) {
+                (int x, int y) = next.Dequeue();
+
+                foreach ((int x, int y) p in new List<(int, int)>() {
+                                (x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1) }
+                    ) {
+
+                    if (visited.Contains(p)) {
+                        continue;
+                    }
+
+                    visited.Add(p);
+
+                    if (p.x < origin.X || p.y < origin.Y || p.x > end.X || p.y > end.Y) {
+                        continue;
+                    }
+
+                    var c = this[p];
+
+                    if ((c != null ? (c.Foreground, c.Background, c.Glyph) : (Color.Transparent, Color.Transparent, 0)) != source) {
+                        continue;
+                    }
+
+                    affected.Add(p);
+                    next.Enqueue(p);
+                }
+            }
+            return affected;
+        }
+
         public TileRef this[Point p] {
             get => cells.TryGetValue(p - pos, out TileRef cg) ? cg : null;
             set {

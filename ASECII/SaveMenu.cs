@@ -25,18 +25,20 @@ namespace ASECII {
     static class SFileMode {
         public static readonly JsonSerializerSettings settings = new JsonSerializerSettings {
             PreserveReferencesHandling = PreserveReferencesHandling.All,
-            TypeNameHandling = TypeNameHandling.Auto
+            TypeNameHandling = TypeNameHandling.All
         };
     }
     class SaveMode : FileMode {
         SpriteModel model;
+        Console renderer;
         public string InitialPath => model.filepath ?? Environment.CurrentDirectory;
-        public SaveMode(SpriteModel model) {
+        public SaveMode(SpriteModel model, Console renderer) {
             this.model = model;
+            this.renderer = renderer;
         }
         public void Enter(Console console, string text) {
             model.filepath = text;
-            model.Save();
+            model.Save(renderer);
             console.Parent.Children.Remove(console);
         }
     }

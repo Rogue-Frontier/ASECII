@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 
 namespace ASECII {
     internal class Program {
-        static int width = 108;
+        static int width = 160;
         static int height = 90;
         private static void Main(string[] args) {
             SadConsole.UI.Themes.Library.Default.Colors.ControlHostBack = Color.Black;
