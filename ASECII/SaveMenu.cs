@@ -16,13 +16,13 @@ using static SadConsole.Input.Keys;
 using Console = SadConsole.Console;
 
 namespace ASECII {
-    interface FileMode {
+    public interface FileMode {
         string InitialPath { get; }
         void Enter(Console console, string text) {
 
         }
     }
-    static class SFileMode {
+    public static class SFileMode {
         public static readonly JsonSerializerSettings settings = new JsonSerializerSettings {
             PreserveReferencesHandling = PreserveReferencesHandling.All,
             TypeNameHandling = TypeNameHandling.All

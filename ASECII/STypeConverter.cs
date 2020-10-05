@@ -1,4 +1,5 @@
 ﻿using Microsoft.Xna.Framework;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -8,11 +9,17 @@ using System.Text;
 
 namespace ASECII {
     //https://stackoverflow.com/a/57319194
-    static class STypeConverter {
+    public static class STypeConverter {
         public static void PrepareConvert() {
             //https://stackoverflow.com/a/57319194
             TypeDescriptor.AddAttributes(typeof((int, int)),  new TypeConverterAttribute(typeof(Int2Converter)));
             TypeDescriptor.AddAttributes(typeof(Color), new TypeConverterAttribute(typeof(ColorConverter)));
+        }
+    }
+    public static class ASECIILoader {
+        public static T DeserializeObject<T>(string s) {
+            STypeConverter.PrepareConvert();
+            return JsonConvert.DeserializeObject<T>(s, SFileMode.settings);
         }
     }
     public class ColorConverter : TypeConverter {

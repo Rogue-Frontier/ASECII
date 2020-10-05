@@ -98,7 +98,10 @@ namespace ASECII {
                     if (p.x < origin.X || p.y < origin.Y || p.x > end.X || p.y > end.Y) {
                         continue;
                     }
-
+                    next.Enqueue(p);
+                }
+                {
+                    var p = (x, y);
                     var c = this[p];
 
                     if ((c != null ? (c.Foreground, c.Background, c.Glyph) : (Color.Transparent, Color.Transparent, 0)) != source) {
@@ -106,7 +109,6 @@ namespace ASECII {
                     }
 
                     affected.Add(p);
-                    next.Enqueue(p);
                 }
             }
             return affected;

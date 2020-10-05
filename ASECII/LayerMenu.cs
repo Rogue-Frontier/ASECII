@@ -20,10 +20,10 @@ namespace ASECII {
             foreach (var l in layers) {
                 int index = i;
 
-                this.Children.Add(new CellButton(() => true,
+                this.Children.Add(new ColorCellButton(() => l.visible ? Color.White : Color.Black,
                     () => {
                         l.visible = !l.visible;
-                    }, 'V') {
+                    }, 'v') {
                     Position = new Point(0, index)
                 });
 
@@ -31,6 +31,11 @@ namespace ASECII {
                     () => {
                         layers.RemoveAt(index);
                         layers.Insert(index + 1, l);
+
+                        if(model.currentLayer == index) {
+                            model.currentLayer++;
+                        }
+
                         UpdateListing();
                     }, '-') {
                     Position = new Point(2, index)
@@ -38,6 +43,10 @@ namespace ASECII {
 
                 this.Children.Add(new CellButton(() => index > 0,
                         () => {
+                            if (model.currentLayer == index) {
+                                model.currentLayer--;
+                            }
+
                             layers.RemoveAt(index);
                             layers.Insert(index - 1, l);
                             UpdateListing();
@@ -61,6 +70,11 @@ namespace ASECII {
                         }
 
                         layers.RemoveAt(index);
+
+                        if (model.currentLayer == index) {
+                            model.currentLayer--;
+                        }
+
                         UpdateListing();
                     }, 'F') {
                     Position = new Point(13, index)
@@ -69,6 +83,11 @@ namespace ASECII {
                 this.Children.Add(new CellButton(() => model.sprite.layers.Count > 1,
                         () => {
                             layers.RemoveAt(index);
+
+                            if (model.currentLayer == index) {
+                                model.currentLayer--;
+                            }
+
                             UpdateListing();
                         }, 'X') {
                     Position = new Point(15, index)

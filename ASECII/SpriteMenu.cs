@@ -202,6 +202,8 @@ namespace ASECII {
                 UseMouse = true
             };
             var layerAddButton = new LabelButton("Add Layer", () => {
+
+                //model.currentLayer = Math.Min(model.currentLayer, model.sprite.layers.Count - 1);
                 model.sprite.layers.Insert(model.currentLayer + 1, new Layer() { name = $"Layer {model.sprite.layers.Count}" });
                 layerMenu.UpdateListing();
             }) {
@@ -210,7 +212,7 @@ namespace ASECII {
                 UseMouse = true
             };
 
-            var layerCutButton = new ActiveLabelButton("Selection to Layer", () => model.selection.Exists, () => {
+            var layerCutButton = new ActiveLabelButton("Cut to Layer", () => model.selection.Exists, () => {
                 model.SelectionToLayer();
                 layerMenu.UpdateListing();
             }) {
@@ -327,7 +329,7 @@ namespace ASECII {
                 this.SetCellAppearance(p.X, p.Y, new ColoredGlyph(Color.White, Color.Black, '+'));
             }
             
-            if(model.pan.allowPan) {
+            if(model.pan.quickPan) {
 
             } else {
                 switch (model.mode) {
@@ -514,6 +516,16 @@ namespace ASECII {
                             }
                         }
                         break;
+                    case Mode.Pick:
+                        if (model.ticksSelect % 30 < 15) {
+                            DrawSelection();
+                        }
+                        if ((model.ticks % 30) < 15) {
+                            if (IsMouseOver) {
+                                this.SetCellAppearance(model.cursorScreen.X, model.cursorScreen.Y, new ColoredGlyph(model.brush.foreground, model.brush.background, '!'));
+                            }
+                        }
+                        break;
                 }
             }
             
@@ -675,7 +687,7 @@ namespace ASECII {
         }
     }
     public enum Mode {
-        Read, Brush, Fill, Pick, Erase, SelectRect, SelectCircle, SelectLasso, SelectPoly, SelectWand, Move, Keyboard
+        Read, Brush, Fill, Pick, Erase, SelectRect, SelectCircle, SelectLasso, SelectPoly, SelectWand, Move, Keyboard, Pan,
     }
     [JsonObject(MemberSerialization.Fields)]
     public class SpriteModel {
@@ -780,6 +792,16 @@ namespace ASECII {
             }
             return result;
         }
+
+        public Mode GetEffectiveMode() {
+            if(pan.quickPan) {
+                return Mode.Pan;
+            } else if(pick.quickPick) {
+                return Mode.Pick;
+            } else {
+                return mode;
+            }
+        }
         public void ProcessKeyboard(Keyboard info) {
             ctrl = info.IsKeyDown(LeftControl);
             shift = info.IsKeyDown(LeftShift);
@@ -837,21 +859,27 @@ namespace ASECII {
                             break;
                     }
                 } else if (info.IsKeyPressed(Space)) {
-                    if (!pan.allowPan) {
-                        pan.allowPan = true;
+                    if (!pan.quickPan) {
+                        pan.quickPan = true;
                         pan.startPan = cursor;
                     }
                 } else if (info.IsKeyReleased(Space)) {
-                    pan.allowPan = false;
+                    pan.quickPan = false;
                     camera -= pan.offsetPan;
                     pan.startPan = new Point(0, 0);
                     pan.offsetPan = new Point(0, 0);
+                } else if (info.IsKeyPressed(LeftAlt)) {
+                    if(mode == Mode.Brush) {
+                        pick.quickPick = true;
+                    }
+                } else if (info.IsKeyReleased(LeftAlt)) {
+                    pick.quickPick = false;
                 } else if (info.IsKeyPressed(Back)) {
                     AddAction(new FillEdit(sprite.layers[currentLayer], selection.GetAll(), null));
                 } else if (info.IsKeyPressed(B)) {
                     ExitMode();
                     mode = Mode.Brush;
-                } else if(info.IsKeyPressed(D)) {
+                } else if (info.IsKeyPressed(D)) {
                     selection.Clear();
                 } else if (info.IsKeyPressed(E)) {
                     ExitMode();
@@ -889,7 +917,7 @@ namespace ASECII {
                     //keyboard.margin = cursor;
                 }
 
-                if (pan.allowPan) {
+                if (pan.quickPan) {
                     pan.ProcessKeyboard(info);
                 }
             }
@@ -933,37 +961,37 @@ namespace ASECII {
         public void ProcessMouse(MouseScreenObjectState state, bool IsMouseOver) {
             cursorScreen = state.SurfaceCellPosition;
             cursor = cursorScreen + camera;
-            if (pan.allowPan) {
-                pan.ProcessMouse(state);
-            } else {
-                switch (mode) {
-                    case Mode.Brush:
-                        brush.ProcessMouse(state, IsMouseOver);
-                        break;
-                    case Mode.Fill:
-                        fill = new FillMode(this);
-                        fill.ProcessMouse(state, IsMouseOver, ctrl);
-                        break;
-                    case Mode.Pick:
-                        pick.ProcessMouse(state, IsMouseOver);
-                        break;
-                    case Mode.Erase:
-                        erase.ProcessMouse(state, IsMouseOver);
-                        break;
-                    case Mode.SelectRect:
-                        selectRect.ProcessMouse(state, ctrl, shift);
-                        break;
-                    case Mode.SelectWand:
-                        selectWand = new SelectWandMode(this, selection);
-                        selectWand?.ProcessMouse(state, ctrl, shift, alt);
-                        break;
-                    case Mode.Move:
-                        move.ProcessMouse(state);
-                        break;
-                    case Mode.Keyboard:
-                        keyboard.ProcessMouse(state);
-                        break;
-                }
+            
+            switch (GetEffectiveMode()) {
+                case Mode.Pan:
+                    pan.ProcessMouse(state);
+                    break;
+                case Mode.Brush:
+                    brush.ProcessMouse(state, IsMouseOver);
+                    break;
+                case Mode.Fill:
+                    fill = new FillMode(this);
+                    fill.ProcessMouse(state, IsMouseOver, alt);
+                    break;
+                case Mode.Pick:
+                    pick.ProcessMouse(state, IsMouseOver);
+                    break;
+                case Mode.Erase:
+                    erase.ProcessMouse(state, IsMouseOver);
+                    break;
+                case Mode.SelectRect:
+                    selectRect.ProcessMouse(state, ctrl, shift);
+                    break;
+                case Mode.SelectWand:
+                    selectWand = new SelectWandMode(this, selection);
+                    selectWand?.ProcessMouse(state, ctrl, shift, alt);
+                    break;
+                case Mode.Move:
+                    move.ProcessMouse(state);
+                    break;
+                case Mode.Keyboard:
+                    keyboard.ProcessMouse(state);
+                    break;
             }
 
 
@@ -1040,7 +1068,7 @@ namespace ASECII {
     }
     public class PanMode {
         public SpriteModel model;
-        public bool allowPan;
+        public bool quickPan;
         public Point startPan;     //Position on screen where user held down space and left clicked
         public Point offsetPan;
 
@@ -1130,18 +1158,18 @@ namespace ASECII {
             this.model = model;
             mouse = new MouseWatch();
         }
-        public void ProcessMouse(MouseScreenObjectState state, bool IsMouseOver, bool ctrl) {
+        public void ProcessMouse(MouseScreenObjectState state, bool IsMouseOver, bool alt) {
             mouse.Update(state, IsMouseOver);
             if (state.IsOnScreenObject) {
                 if (state.Mouse.LeftButtonDown && mouse.leftPressedOnScreen) {
-                    var layer = model.sprite.layers[model.currentLayer];
 
+                    var layer = model.sprite.layers[model.currentLayer];
                     var start = model.cursor;
                     var t = layer[start];
                     var source = t != null ? (t.Foreground, t.Background, t.Glyph) : (Color.Transparent, Color.Transparent, 0);
                     if ((model.brush.foreground, model.brush.background, model.brush.glyph) != source) {
                         HashSet<Point> affected;
-                        if (ctrl) {
+                        if (alt) {
                             affected = layer.GetGlobalFill(source, model.sprite.origin, model.sprite.end);
                         } else {
                             affected = layer.GetFloodFill(start, source, model.sprite.origin, model.sprite.end);
@@ -1162,6 +1190,7 @@ namespace ASECII {
     }
     [JsonObject(MemberSerialization.Fields)]
     public class PickMode {
+        public bool quickPick;
         public SpriteModel model;
         public MouseWatch mouse;
         public PickMode(SpriteModel model) {
@@ -1173,9 +1202,20 @@ namespace ASECII {
             mouse.Update(state, IsMouseOver);
             if (state.IsOnScreenObject) {
                 if (state.Mouse.LeftButtonDown && mouse.leftPressedOnScreen) {
+
+                    TileRef t = null;
                     var layer = model.sprite.layers[model.currentLayer];
-                    var t = layer[model.cursor];
-                    if(t is TileIndex ti) {
+                    t = layer[model.cursor];
+
+                    foreach(var l in model.sprite.layers) {
+                        var lt = l[model.cursor];
+                        if (lt != null) {
+                            t = lt; 
+                        }
+                    }
+                    if(t == null) {
+
+                    } else if(t is TileIndex ti) {
                         model.tiles.brushIndex = ti.index;
                     } else if(t is TilePalette tp) {
                         model.palette.foregroundIndex = tp.foregroundIndex;
@@ -1456,23 +1496,21 @@ namespace ASECII {
                     var t = layer[start];
                     var source = t != null ? (t.Foreground, t.Background, t.Glyph) : (Color.Transparent, Color.Transparent, 0);
 
-                    if ((model.brush.foreground, model.brush.background, model.brush.glyph) != source) {
-                        HashSet<Point> affected = new HashSet<Point>();
-                        if (alt) {
-                            affected = layer.GetGlobalFill(source, model.sprite.origin, model.sprite.end);
+                    HashSet<Point> affected = new HashSet<Point>();
+                    if (alt) {
+                        affected = layer.GetGlobalFill(source, model.sprite.origin, model.sprite.end);
+                    } else {
+                        affected = layer.GetFloodFill(start, source, model.sprite.origin, model.sprite.end);
+                    }
+                    if (affected.Any()) {
+                        if(ctrl) {
+                            selection.points.UnionWith(affected);
+                        } else if(shift) {
+                            selection.UsePointsOnly();
+                            selection.points.ExceptWith(affected);
                         } else {
-                            affected = layer.GetFloodFill(start, source, model.sprite.origin, model.sprite.end);
-                        }
-                        if (affected.Any()) {
-                            if(ctrl) {
-                                selection.points.UnionWith(affected);
-                            } else if(shift) {
-                                selection.UsePointsOnly();
-                                selection.points.ExceptWith(affected);
-                            } else {
-                                selection.Clear();
-                                selection.points.UnionWith(affected);
-                            }
+                            selection.Clear();
+                            selection.points.UnionWith(affected);
                         }
                     }
                 }
