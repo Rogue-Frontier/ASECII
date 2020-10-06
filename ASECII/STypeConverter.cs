@@ -21,6 +21,10 @@ namespace ASECII {
             STypeConverter.PrepareConvert();
             return JsonConvert.DeserializeObject<T>(s, SFileMode.settings);
         }
+        public static string SerializeObject(object o) {
+            STypeConverter.PrepareConvert();
+            return JsonConvert.SerializeObject(o, SFileMode.settings);
+        }
     }
     public class ColorConverter : TypeConverter {
         public override bool CanConvertFrom(ITypeDescriptorContext context, Type sourceType) {

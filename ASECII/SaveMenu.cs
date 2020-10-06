@@ -14,13 +14,12 @@ using System.Linq;
 using System.Text;
 using static SadConsole.Input.Keys;
 using Console = SadConsole.Console;
+using ArchConsole;
 
 namespace ASECII {
     public interface FileMode {
         string InitialPath { get; }
-        void Enter(Console console, string text) {
-
-        }
+        void Enter(Console console, string text);
     }
     public static class SFileMode {
         public static readonly JsonSerializerSettings settings = new JsonSerializerSettings {
@@ -53,8 +52,7 @@ namespace ASECII {
 
             if (File.Exists(text)) {
                 try {
-                    STypeConverter.PrepareConvert();
-                    var sprite = JsonConvert.DeserializeObject<SpriteModel>(File.ReadAllText(text), SFileMode.settings);
+                    var sprite = ASECIILoader.DeserializeObject<SpriteModel>(File.ReadAllText(text));
                     console.Children.Add(new EditorMain(Width, Height, sprite));
                 } catch {
                     throw;
@@ -62,44 +60,60 @@ namespace ASECII {
             } else {
                 var model = new SpriteModel(Width, Height) { filepath = text };
                 model.sprite.layers.Add(new Layer());
-                STypeConverter.PrepareConvert();
-                File.WriteAllText(text, JsonConvert.SerializeObject(model, SFileMode.settings));
+
+                File.WriteAllText(text, ASECIILoader.SerializeObject(model));
                 console.Children.Add(new EditorMain(Width, Height, model));
             }
         }
     }
     class FileMenu : ControlsConsole {
+        public static string RECENTFILES = "RecentFiles.json";
+
         SpriteModel hoveredFile;
         Dictionary<string, SpriteModel> preloaded;
 
         HashSet<string> recentFiles;
-        List<Button> recentListing;
+        List<LabelButton> recentListing;
         
-        List<Button> folderListing;
-        TextBox textbox;
+        List<LabelButton> folderListing;
+        TextField textbox;
         FileMode mode;
 
         int folderListingX;
 
-        public FileMenu(int width, int height, FileMode mode, HashSet<string> recentFiles = null) : base(width, height) {
+        public FileMenu(int width, int height, FileMode mode) : base(width, height) {
 
             DefaultBackground = Color.Black;
 
 
-            this.recentFiles = recentFiles;
+            this.recentFiles = File.Exists(RECENTFILES) ? ASECIILoader.DeserializeObject<HashSet<string>>(File.ReadAllText(RECENTFILES)) : new HashSet<string>();
             this.preloaded = new Dictionary<string, SpriteModel>();
-            this.recentListing = new List<Button>();
-            int n = 0;
-            if(recentFiles != null) {
-                folderListingX = 16;
+            this.recentListing = new List<LabelButton>();
+            int n = 3;
+
+            if(recentFiles.Any()) {
+                folderListingX = 32;
                 foreach (var f in recentFiles) {
-                    var b = new Button(16) {
-                        Text = Path.GetFileName(f),
-                        Position = new Point(0, n),
+                    var p = Path.GetFileName(f);
+                    var b = new LabelButton(p, Load) {
+                        Position = new Point(4, n),
                     };
+
+                    b.MouseEnter += (e, args) => {
+                        ShowPreview(f);
+                    };
+
+                    this.Children.Add(b);
                     recentListing.Add(b);
                     n++;
+
+                    void Load() {
+                        mode.Enter(this, f);
+                        AddRecentFile(f);
+                    }
                 }
+            } else {
+                folderListingX = 8;
             }
             
 
@@ -108,27 +122,30 @@ namespace ASECII {
             UseKeyboard = true;
             IsFocused = true;
             FocusOnMouseClick = true;
-            folderListing = new List<Button>();
+            folderListing = new List<LabelButton>();
 
 
-            textbox = new TextBox(width - folderListingX) {
+            textbox = new TextField(width - folderListingX) {
                 Position = new Point(folderListingX, 1),
-                IsCaretVisible = true,
-                FocusOnClick = true,
+                
                 UseKeyboard = true,
                 UseMouse = true,
                 IsFocused = true,
-                CanFocus = true,
-                Text = mode.InitialPath,
+                text = mode.InitialPath,
             };
-            textbox.TextChanged += (e, args) => {
-                UpdateListing(textbox.Text);
+            textbox.TextChanged += (tf) => {
+                UpdateListing(textbox.text);
             };
-            this.Controls.Add(textbox);
-            UpdateListing(textbox.Text);
+            this.Children.Add(textbox);
+            UpdateListing(textbox.text);
+        }
+
+        public void AddRecentFile(string s) {
+            recentFiles.Add(s);
+            File.WriteAllText(RECENTFILES, ASECIILoader.SerializeObject(recentFiles));
         }
         public void UpdateListing(string filepath) {
-            folderListing.ForEach(b => this.Controls.Remove(b));
+            folderListing.ForEach(b => this.Children.Remove(b));
             folderListing.Clear();
             int i = 2;
             if (string.IsNullOrWhiteSpace(filepath)) {
@@ -137,57 +154,19 @@ namespace ASECII {
             if (Directory.Exists(filepath)) {
 
                 i++;
-                var b = new Button(32, 1) {
+                var b = new LabelButton("..", () => textbox.text = Directory.GetParent(filepath).FullName) {
                     Position = new Point(folderListingX, i),
-                    Text = "..",
-                    TextAlignment = HorizontalAlignment.Left,
-                };
-
-                b.Click += (e, args) => {
-                    textbox.Text = Directory.GetParent(filepath).FullName;
                 };
                 folderListing.Add(b);
 
                 ShowDirectories(Directory.GetDirectories(filepath).Where(p => p.StartsWith(filepath)));
                 ShowFiles(Directory.GetFiles(filepath).Where(p => p.StartsWith(filepath)));
-            } else if (File.Exists(filepath)) {
-                i++;
-                var b = new Button(32, 1) {
-                    Position = new Point(folderListingX, i),
-                    Text = "..",
-                    TextAlignment = HorizontalAlignment.Left,
-                };
-                b.Click += (e, args) => {
-                    textbox.Text = Directory.GetParent(filepath).FullName;
-                };
-                folderListing.Add(b);
-
-                //File button
-                i++;
-                b = new Button(32, 1) {
-                    Position = new Point(folderListingX, i),
-                    Text = Path.GetFileName(filepath),
-                    TextAlignment = HorizontalAlignment.Left,
-                };
-                b.MouseEnter += (e, args) => {
-                    ShowPreview(filepath);
-                };
-                b.Click += (e, args) => {
-                    mode.Enter(this, filepath);
-                };
-                folderListing.Add(b);
             } else {
                 var parent = Directory.GetParent(filepath).FullName;
                 if (Directory.Exists(parent)) {
                     i++;
-                    var b = new Button(32, 1) {
+                    var b = new LabelButton("..", () => textbox.text = parent) {
                         Position = new Point(folderListingX, i),
-                        Text = "..",
-                        TextAlignment = HorizontalAlignment.Left,
-                    };
-                    b.Click += (e, args) => {
-                        //textbox.Text = Directory.GetParent(parent).FullName;
-                        textbox.Text = parent;
                     };
                     folderListing.Add(b);
 
@@ -195,20 +174,17 @@ namespace ASECII {
                     ShowFiles(Directory.GetFiles(parent).Where(p => p.StartsWith(filepath)));
                 }
             }
-            foreach (var button in folderListing) {
-                this.Controls.Add(button);
+
+
+            foreach (var button in folderListing.Take(64)) {
+                this.Children.Add(button);
             }
 
             void ShowDirectories(IEnumerable<string> directories) {
                 foreach (var directory in directories) {
                     i++;
-                    var b = new Button(32, 1) {
+                    var b = new LabelButton(Path.GetFileName(directory), () => textbox.text = directory) {
                         Position = new Point(folderListingX, i),
-                        Text = Path.GetFileName(directory),
-                        TextAlignment = HorizontalAlignment.Left,
-                    };
-                    b.Click += (e, args) => {
-                        textbox.Text = directory;
                     };
                     folderListing.Add(b);
                 }
@@ -216,42 +192,48 @@ namespace ASECII {
             void ShowFiles(IEnumerable<string> files) {
                 foreach (var file in files) {
                     i++;
-                    var b = new Button(32, 1) {
+                    var b = new LabelButton(Path.GetFileName(file), Load) {
                         Position = new Point(folderListingX, i),
-                        Text = Path.GetFileName(file),
-                        TextAlignment = HorizontalAlignment.Left,
                     };
                     b.MouseEnter += (e, args) => {
                         ShowPreview(file);
                     };
-                    b.Click += (e, args) => {
-                        //textbox.Text = file;
-                        mode.Enter(this, file);
-                    };
                     folderListing.Add(b);
+
+                    void Load() {
+                        mode.Enter(this, file);
+                        AddRecentFile(file);
+                    }
                 }
             }
-            void ShowPreview(string file) {
-                if(preloaded.TryGetValue(file, out hoveredFile)) {
-                    return;
-                } else {
+        }
+
+        public void ShowPreview(string file) {
+            if (preloaded.TryGetValue(file, out hoveredFile)) {
+                return;
+            } else {
+                preloaded[file] = null;
+
+                System.Threading.Tasks.Task.Run(StartLoad);
+                void StartLoad() {
                     try {
                         STypeConverter.PrepareConvert();
                         var model = JsonConvert.DeserializeObject<SpriteModel>(File.ReadAllText(file), SFileMode.settings);
-                        if(model?.filepath == null) {
+                        if (model?.filepath == null) {
                             preloaded[file] = null;
                             hoveredFile = null;
                             return;
                         }
                         preloaded[file] = model;
                         hoveredFile = model;
-                    } catch(Exception e) {
+                    } catch (Exception e) {
                         preloaded[file] = null;
                         hoveredFile = null;
                     }
                 }
             }
         }
+
         public override void Render(TimeSpan delta) {
             base.Render(delta);
             this.Clear();
@@ -265,8 +247,10 @@ namespace ASECII {
             }
             if (hoveredFile != null && hoveredFile.sprite != null) {
 
-                var previewX = 33;
-                var previewY = 3;
+                var s = hoveredFile.sprite;
+
+                var previewX = (Width - (s.end - s.origin).X) < 64 ? 0 : 64;
+                var previewY = 0;
                 var origin = hoveredFile.sprite.origin;
 
                 
@@ -280,16 +264,15 @@ namespace ASECII {
                         }
                     }
                 }
-                this.Print(previewX, previewY, "Preview", Color.White, Color.Black);
             }
         }
         public override bool ProcessKeyboard(Keyboard keyboard) {
             if (keyboard.IsKeyPressed(Enter)) {
-                var f = textbox.EditingText;
+                var f = textbox.text;
                 mode.Enter(this, f);
+                AddRecentFile(f);
+
                 
-            } else {
-                UpdateListing(textbox.EditingText);
             }
             return base.ProcessKeyboard(keyboard);
         }
