@@ -114,7 +114,6 @@ namespace ASECII {
             void PaletteChanged() {
                 foregroundAddButton.UpdateActive();
                 backgroundAddButton.UpdateActive();
-
                 foregroundRemoveButton.UpdateActive();
                 backgroundRemoveButton.UpdateActive();
 
@@ -132,14 +131,8 @@ namespace ASECII {
                 tileButton.UpdateActive();
                 
                 paletteModel.UpdateIndexes(model);
-                foregroundAddButton.UpdateActive();
-                backgroundAddButton.UpdateActive();
-                foregroundRemoveButton.UpdateActive();
-                backgroundRemoveButton.UpdateActive();
 
-                pickerModel.UpdateColors();
-                pickerModel.UpdateBrushPoints(paletteModel);
-                pickerModel.UpdatePalettePoints(paletteModel);
+                PaletteChanged();
             }) {
                 Position = new Point(0, 0),
                 FocusOnMouseClick = true,
@@ -159,17 +152,8 @@ namespace ASECII {
             var paletteMenu = new PaletteMenu(16, 4, model, paletteModel, () => {
                 tileModel.UpdateIndexes(model);
                 tileButton.UpdateActive();
-
-                foregroundAddButton.UpdateActive();
-                backgroundAddButton.UpdateActive();
-                foregroundRemoveButton.UpdateActive();
-                backgroundRemoveButton.UpdateActive();
-
                 pickerModel.UpdateBrushPoints(paletteModel);
-
-                pickerModel.UpdateColors();
-                pickerModel.UpdateBrushPoints(paletteModel);
-                pickerModel.UpdatePalettePoints(paletteModel);
+                PaletteChanged();
             }) {
                 Position = new Point(0, 25),
                 FocusOnMouseClick = true,
@@ -222,6 +206,12 @@ namespace ASECII {
             };
 
             model.selection.selectionChanged += layerCutButton.UpdateActive;
+            model.pick.brushChanged += () => {
+                tileModel.UpdateIndexes(model);
+                tileButton.UpdateActive();
+                paletteModel.UpdateIndexes(model);
+                PaletteChanged();
+            };
 
             //No per-color transparency; layer-based only
 
@@ -752,8 +742,7 @@ namespace ASECII {
 
         }
         public void Save(Console renderer) {
-            STypeConverter.PrepareConvert();
-            File.WriteAllText($"{filepath}.asc", JsonConvert.SerializeObject(this, SFileMode.settings));
+            File.WriteAllText($"{filepath}", ASECIILoader.SerializeObject(this));
 
             var preview = sprite.preview;
 
@@ -1193,6 +1182,10 @@ namespace ASECII {
         public bool quickPick;
         public SpriteModel model;
         public MouseWatch mouse;
+
+        public delegate void BrushChanged();
+
+        public event BrushChanged brushChanged;
         public PickMode(SpriteModel model) {
             this.model = model;
             mouse = new MouseWatch();
@@ -1224,6 +1217,8 @@ namespace ASECII {
                     model.brush.foreground = t?.Foreground ?? Color.Transparent;
                     model.brush.background = t?.Background ?? Color.Transparent;
                     model.brush.glyph = t?.Glyph ?? 0;
+
+                    brushChanged?.Invoke();
                 }
             }
         }
@@ -1408,6 +1403,7 @@ namespace ASECII {
         public void Clear() {
             points.Clear();
             rects.Clear();
+            selectionChanged.Invoke();
         }
 
     }

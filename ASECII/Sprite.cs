@@ -54,6 +54,7 @@ namespace ASECII {
             end = new Point(right, bottom);
         }
     }
+    //bool for aoolyForeground, applyBackground, applyGlyph
     public class Layer {
         public Point pos;
         public bool visible;
@@ -85,6 +86,17 @@ namespace ASECII {
             while (next.Any()) {
                 (int x, int y) = next.Dequeue();
 
+                {
+                    var p = (x, y);
+                    var c = this[p];
+
+                    if ((c != null ? (c.Foreground, c.Background, c.Glyph) : (Color.Transparent, Color.Transparent, 0)) != source) {
+                        continue;
+                    }
+
+                    affected.Add(p);
+                }
+
                 foreach ((int x, int y) p in new List<(int, int)>() {
                                 (x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1) }
                     ) {
@@ -99,16 +111,6 @@ namespace ASECII {
                         continue;
                     }
                     next.Enqueue(p);
-                }
-                {
-                    var p = (x, y);
-                    var c = this[p];
-
-                    if ((c != null ? (c.Foreground, c.Background, c.Glyph) : (Color.Transparent, Color.Transparent, 0)) != source) {
-                        continue;
-                    }
-
-                    affected.Add(p);
                 }
             }
             return affected;

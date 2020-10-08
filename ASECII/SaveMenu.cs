@@ -15,6 +15,7 @@ using System.Text;
 using static SadConsole.Input.Keys;
 using Console = SadConsole.Console;
 using ArchConsole;
+using Newtonsoft.Json.Serialization;
 
 namespace ASECII {
     public interface FileMode {
@@ -24,7 +25,8 @@ namespace ASECII {
     public static class SFileMode {
         public static readonly JsonSerializerSettings settings = new JsonSerializerSettings {
             PreserveReferencesHandling = PreserveReferencesHandling.All,
-            TypeNameHandling = TypeNameHandling.All
+            TypeNameHandling = TypeNameHandling.All,
+            ReferenceLoopHandling = ReferenceLoopHandling.Ignore
         };
     }
     class SaveMode : FileMode {
@@ -35,8 +37,8 @@ namespace ASECII {
             this.model = model;
             this.renderer = renderer;
         }
-        public void Enter(Console console, string text) {
-            model.filepath = text;
+        public void Enter(Console console, string filepath) {
+            model.filepath = filepath;
             model.Save(renderer);
             console.Parent.Children.Remove(console);
         }
@@ -46,22 +48,29 @@ namespace ASECII {
         public LoadMode() {
 
         }
-        public void Enter(Console console, string text) {
+        public void Enter(Console console, string filepath) {
             var Width = console.Width;
             var Height = console.Height;
 
-            if (File.Exists(text)) {
+            if (File.Exists(filepath)) {
                 try {
-                    var sprite = ASECIILoader.DeserializeObject<SpriteModel>(File.ReadAllText(text));
+                    var sprite = ASECIILoader.DeserializeObject<SpriteModel>(File.ReadAllText(filepath));
+
+                    if(sprite.filepath != filepath) {
+                        sprite.filepath = filepath;
+                        File.WriteAllText($"{filepath}", ASECIILoader.SerializeObject(sprite));
+                    }
+
+
                     console.Children.Add(new EditorMain(Width, Height, sprite));
                 } catch {
                     throw;
                 }
             } else {
-                var model = new SpriteModel(Width, Height) { filepath = text };
+                var model = new SpriteModel(Width, Height) { filepath = filepath };
                 model.sprite.layers.Add(new Layer());
 
-                File.WriteAllText(text, ASECIILoader.SerializeObject(model));
+                File.WriteAllText(filepath, ASECIILoader.SerializeObject(model));
                 console.Children.Add(new EditorMain(Width, Height, model));
             }
         }
@@ -162,7 +171,7 @@ namespace ASECII {
                 ShowDirectories(Directory.GetDirectories(filepath).Where(p => p.StartsWith(filepath)));
                 ShowFiles(Directory.GetFiles(filepath).Where(p => p.StartsWith(filepath)));
             } else {
-                var parent = Directory.GetParent(filepath).FullName;
+         var parent = Directory.GetParent(filepath).FullName;
                 if (Directory.Exists(parent)) {
                     i++;
                     var b = new LabelButton("..", () => textbox.text = parent) {
