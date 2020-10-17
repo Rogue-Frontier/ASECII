@@ -338,6 +338,26 @@ namespace ASECII {
                             }
                         }
                         break;
+                    case Mode.Line:
+                        if ((model.ticks % 15) < 7) {
+                            var cell = model.brush.cell;
+                            if (model.line.start.HasValue) {
+                                var start = model.line.start.Value;
+                                var end = model.line.end;
+                                if (start == end) {
+                                    this.SetCellAppearance(start.X, start.Y, cell);
+                                } else {
+                                    foreach(var p in model.line.GetPoints()) {
+                                        (var x, var y) = p;
+                                        this.SetCellAppearance(x, y - 1, cell);
+                                    }
+                                }
+                            } else {
+                                this.SetCellAppearance(model.cursorScreen.X, model.cursorScreen.Y, cell);
+                            }
+                        }
+
+                        break;
                     case Mode.Erase:
                         if (model.ticksSelect % 30 < 15) {
                             /*
@@ -677,7 +697,7 @@ namespace ASECII {
         }
     }
     public enum Mode {
-        Read, Brush, Fill, Pick, Erase, SelectRect, SelectCircle, SelectLasso, SelectPoly, SelectWand, Move, Keyboard, Pan,
+        Read, Brush, Fill, Pick, Erase, SelectRect, SelectCircle, SelectLasso, SelectPoly, SelectWand, Move, Keyboard, Pan, Line,
     }
     [JsonObject(MemberSerialization.Fields)]
     public class SpriteModel {
@@ -692,9 +712,12 @@ namespace ASECII {
         public string filepath;
         public Sprite sprite;
 
+        public TileRef brushTile => (tiles.brushIndex.HasValue ? (TileRef)tiles.brushTile : (TileRef)brush.cell);
+
         public TileModel tiles;
         public PaletteModel palette;
         public BrushMode brush;
+        public LineMode line;
         public FillMode fill;
         public PickMode pick;
         public EraseMode erase;
@@ -728,6 +751,7 @@ namespace ASECII {
             tiles = new TileModel();
             palette = new PaletteModel();
             brush = new BrushMode(this);
+            line = new LineMode(this);
             fill = new FillMode(this);
             pick = new PickMode(this);
             erase = new EraseMode(this);
@@ -827,24 +851,22 @@ namespace ASECII {
                             //Not supposed to happen since we exit
                             break;
                         case Mode.Brush:
-                            ExitMode();
-                            mode = Mode.Read;
+                            SetMode(Mode.Read);
+                            break;
+                        case Mode.Line:
+                            SetMode(Mode.Brush);
                             break;
                         case Mode.Fill:
-                            ExitMode();
-                            mode = Mode.Brush;
+                            SetMode(Mode.Brush);
                             break;
                         case Mode.Pick:
-                            ExitMode();
-                            mode = Mode.Brush;
+                            SetMode(Mode.Brush);
                             break;
                         case Mode.SelectWand:
-                            ExitMode();
-                            mode = Mode.Brush;
+                            SetMode(Mode.Brush);
                             break;
                         default:
-                            ExitMode();
-                            mode = Mode.Brush;
+                            SetMode(Mode.Brush);
                             break;
                     }
                 } else if (info.IsKeyPressed(Space)) {
@@ -858,7 +880,7 @@ namespace ASECII {
                     pan.startPan = new Point(0, 0);
                     pan.offsetPan = new Point(0, 0);
                 } else if (info.IsKeyPressed(LeftAlt)) {
-                    if(mode == Mode.Brush) {
+                    if (mode == Mode.Brush) {
                         pick.quickPick = true;
                     }
                 } else if (info.IsKeyReleased(LeftAlt)) {
@@ -866,66 +888,54 @@ namespace ASECII {
                 } else if (info.IsKeyPressed(Back)) {
                     AddAction(new FillEdit(sprite.layers[currentLayer], selection.GetAll(), null));
                 } else if (info.IsKeyPressed(B)) {
-                    ExitMode();
-                    mode = Mode.Brush;
+                    SetMode(Mode.Brush);
                 } else if (info.IsKeyPressed(D)) {
                     selection.Clear();
                 } else if (info.IsKeyPressed(E)) {
-                    ExitMode();
-                    mode = Mode.Erase;
+                    SetMode(Mode.Erase);
                 } else if (info.IsKeyPressed(F)) {
-                    ExitMode();
-                    mode = Mode.Fill;
+                    SetMode(Mode.Fill);
                 } else if (info.IsKeyPressed(I)) {
-                    ExitMode();
-                    mode = Mode.Pick;
-                } else if (info.IsKeyPressed(W)) {
-                    ExitMode();
-                    mode = Mode.SelectWand;
+                    SetMode(Mode.Pick);
+                } else if(info.IsKeyPressed(L)) {
+                    SetMode(Mode.Line);
                 } else if (info.IsKeyPressed(M)) {
-                    ExitMode();
+                    SetMode(mode = Mode.Move);
                     if (selection.Exists) {
-                        var moveLayer = SelectionToLayer();
-                        move = new MoveMode(this, selection, currentLayer, moveLayer);
-                        mode = Mode.Move;
+                        var moveLayer = Cut(selection.GetAll());
+                        move = new MoveMode(this, selection, moveLayer);
                     } else {
-                        var moveLayer = sprite.layers[currentLayer];
-                        sprite.layers.Insert(currentLayer, new Layer() { name = "Move" });
-                        currentLayer++;
-                        move = new MoveMode(this, selection, currentLayer, moveLayer);
-                        mode = Mode.Move;
+                        move = new MoveMode(this, selection, sprite.layers[currentLayer]);
                     }
                 } else if (info.IsKeyPressed(S) && !info.IsKeyDown(LeftControl)) {
-                    ExitMode();
-                    mode = Mode.SelectRect;
+                    SetMode(Mode.SelectRect);
                 } else if (info.IsKeyPressed(T)) {
-                    ExitMode();
-                    mode = Mode.Keyboard;
+                    SetMode(Mode.Keyboard);
                     keyboard.keyCursor = null;
                     //keyboard.keyCursor = cursor;
                     //keyboard.margin = cursor;
+                } else if (info.IsKeyPressed(W)) {
+                    SetMode(Mode.SelectWand);
                 }
 
                 if (pan.quickPan) {
                     pan.ProcessKeyboard(info);
                 }
             }
-            void ExitMode() {
+            void SetMode(Mode next) {
                 if(mode == Mode.Move) {
-                    if(currentLayer == 0) {
-                        //If for some reason we're the first layer, then we have nothing to flatten onto
-                        return;
+                    //If we're moving an existing layer
+                    move = move ?? new MoveMode(this, selection, sprite.layers[currentLayer]);
+                    if(sprite.layers.Contains(move.layer)) {
                     } else {
-                        //Flatten the layer and decrement currentLayer
-                        var prevLayer = sprite.layers[currentLayer - 1];
-
-                        foreach (var (point, cell) in move.layer.cells) {
-                            prevLayer[point + move.layer.pos] = cell;
-                        }
-                        sprite.layers.RemoveAt(currentLayer);
-                        currentLayer--;
+                        //We're moving a selection between layers
+                        //Flatten selection onto layer
+                        var layer = sprite.layers[currentLayer];
+                        layer.Flatten(move.layer);
                     }
                 }
+
+                mode = next;
             }
         }
         public Layer Cut(HashSet<Point> points) {
@@ -958,9 +968,11 @@ namespace ASECII {
                 case Mode.Brush:
                     brush.ProcessMouse(state, IsMouseOver);
                     break;
+                case Mode.Line:
+                    line.ProcessMouse(state);
+                    break;
                 case Mode.Fill:
-                    fill = new FillMode(this);
-                    fill.ProcessMouse(state, IsMouseOver, alt);
+                    fill.ProcessMouse(state, IsMouseOver, shift, ctrl, alt);
                     break;
                 case Mode.Pick:
                     pick.ProcessMouse(state, IsMouseOver);
@@ -987,6 +999,12 @@ namespace ASECII {
             prevCell = cursor;
             prevLeft = state.Mouse.LeftButtonDown;
         }
+
+        public void OnLoad() {
+            line = line ?? new LineMode(this);
+            fill = fill ?? new FillMode(this);
+        }
+
         public void AddAction(SingleEdit edit) {
             if(edit.IsRedundant()) {
                 return;
@@ -995,7 +1013,7 @@ namespace ASECII {
             Redo.Clear();
             edit.Do();
         }
-        public void AddAction(FillEdit edit) {
+        public void AddAction(Edit edit) {
             Undo.AddLast(edit);
             Redo.Clear();
             edit.Do();
@@ -1027,6 +1045,30 @@ namespace ASECII {
         }
         public bool IsRedundant() => prev == null ? next == null : next != null && (prev.Background == next.Background && prev.Foreground == next.Foreground && prev.Glyph == next.Glyph);
     }
+    public class MultiEdit : Edit {
+        public Layer layer;
+        public Dictionary<(int, int), TileRef> prev;
+        public Dictionary<(int, int), TileRef> next;
+        public MultiEdit(Layer layer, Dictionary<(int, int), TileRef> next) {
+            this.layer = layer;
+            this.next = next;
+
+            prev = new Dictionary<(int, int), TileRef>();
+            foreach((var p, var t) in next) {
+                prev[p] = layer[p];
+            }
+        }
+        public void Undo() {
+            foreach ((var p, var t) in prev) {
+                layer[p] = t;
+            }
+        }
+        public void Do() {
+            foreach ((var p, var t) in next) {
+                layer[p] = t;
+            }
+        }
+    }
     public class FillEdit : Edit {
         public Layer layer;
         public Dictionary<(int, int), TileRef> prev;
@@ -1055,6 +1097,64 @@ namespace ASECII {
             }
         }
     }
+
+    public class MoveEdit {
+        Layer layer;
+        Point offset;
+        public MoveEdit(Layer layer, Point offset) {
+            this.layer = layer;
+            this.offset = offset;
+        }
+
+        public void Undo() => layer.pos -= offset;
+        public void Do() => layer.pos += offset;
+    }
+    public class ExitMoveSelection : Edit {
+        SpriteModel model;
+        Flatten flatten;
+        Mode next;
+        public ExitMoveSelection(SpriteModel model, Layer selectionLayer, Mode next) {
+            this.model = model;
+            this.flatten = new Flatten(selectionLayer, model.sprite.layers[model.currentLayer]);
+            this.next = next;
+        }
+        public void Do() {
+            this.flatten.Do();
+            model.mode = next;
+        }
+        public void Undo() {
+            model.mode = Mode.Move;
+            model.move.layer = flatten.layer;
+            flatten.Undo();
+        }
+    }
+    //We don't consider this an individual edit since it's usually part of a larger action with more side effects
+    //i.e. ExitMoveSelection and flatten layer button
+    public class Flatten {
+        public Layer layer;
+        public Layer below;
+
+        Dictionary<(int, int), TileRef> oldCells;
+        public Flatten(Layer layer, Layer below) {
+            this.layer = layer;
+            this.below = below;
+
+            oldCells = new Dictionary<(int, int), TileRef>();
+            foreach (var p in layer.cells.Keys) {
+                oldCells[p + layer.pos] = below[p + layer.pos];
+            }
+        }
+        //To do: Test with both layers moved
+        public void Undo() {
+            foreach ((var p, var t) in oldCells) {
+                below[p] = t;
+            }
+        }
+        public void Do() {
+            below.Flatten(layer);
+        }
+    }
+
     public class PanMode {
         public SpriteModel model;
         public bool quickPan;
@@ -1129,14 +1229,7 @@ namespace ASECII {
         }
         void Place(Point p) {
             var layer = model.sprite.layers[model.currentLayer];
-            SingleEdit action;
-            if(model.tiles.brushIndex.HasValue) {
-                action = new SingleEdit(p, layer, model.tiles.brushTile);
-            } else {
-                action = new SingleEdit(p, layer, model.brush.cell);
-            }
-            
-            model.AddAction(action);
+            model.AddAction(new SingleEdit(p, layer, model.brushTile));
         }
     }
     [JsonObject(MemberSerialization.Fields)]
@@ -1147,45 +1240,106 @@ namespace ASECII {
             this.model = model;
             mouse = new MouseWatch();
         }
-        public void ProcessMouse(MouseScreenObjectState state, bool IsMouseOver, bool alt) {
+        public void ProcessMouse(MouseScreenObjectState state, bool IsMouseOver, bool shift, bool ctrl, bool alt) {
             mouse.Update(state, IsMouseOver);
             if (state.IsOnScreenObject) {
-                if (state.Mouse.LeftButtonDown && mouse.leftPressedOnScreen) {
+                if (mouse.leftPressedOnScreen && mouse.left == ClickState.Released) {
 
                     var layer = model.sprite.layers[model.currentLayer];
                     var start = model.cursor;
                     var t = layer[start];
-                    var source = t != null ? (t.Foreground, t.Background, t.Glyph) : (Color.Transparent, Color.Transparent, 0);
-                    if ((model.brush.foreground, model.brush.background, model.brush.glyph) != source) {
-                        HashSet<Point> affected;
-                        if (alt) {
+                    var source = Layer.Triple(t);
+
+                    HashSet<Point> affected = new HashSet<Point>();
+                    if (ctrl) {
+                        affected = layer.GetGrowFill(start, Layer.Triple(model.brushTile), model.sprite.origin, model.sprite.end);
+                    } else if ((model.brush.foreground, model.brush.background, model.brush.glyph) != source) {
+                        
+                        if (shift) {
+                            affected = layer.GetOutlineFill(start, source, model.sprite.origin, model.sprite.end);
+                        } else if (alt) {
                             affected = layer.GetGlobalFill(source, model.sprite.origin, model.sprite.end);
                         } else {
                             affected = layer.GetFloodFill(start, source, model.sprite.origin, model.sprite.end);
                         }
-                        if (affected.Any()) {
-                            FillEdit action;
-                            if (model.tiles.brushIndex.HasValue) {
-                                action = new FillEdit(layer, affected, model.tiles.brushTile);
-                            } else {
-                                action = new FillEdit(layer, affected, model.brush.cell);
-                            }
-                            model.AddAction(action);
-                        }
+                    }
+
+                    if (affected.Any()) {
+                        model.AddAction(new FillEdit(layer, affected, model.brushTile));
                     }
                 }
             }
         }
     }
+
+    [JsonObject(MemberSerialization.Fields)]
+    public class LineMode {
+        public SpriteModel model;
+        public Layer layer;
+
+        public Point? start;
+        public Point end;
+
+        public HashSet<Point> GetPoints() {
+            var start = this.start.Value;
+            var offset = end - start;
+            double distance = offset.Length();
+            (double dx, double dy) = (offset.X / distance, offset.Y / distance);
+            (double x, double y) = (start.X, start.Y);
+
+            HashSet<Point> points = new HashSet<Point>();
+            for (int i = 0; i < distance; i++) {
+                points.Add(((int)Math.Round(x), (int)Math.Round(y)));
+                (x, y) = (x + dx, y + dy);
+            }
+            return points;
+        }
+        //public Point moved => start.HasValue ? end - start.Value : new Point(0, 0);
+        public MouseWatch mouse;
+        public LineMode(SpriteModel model) {
+            this.model = model;
+            mouse = new MouseWatch();
+        }
+        public void ProcessMouse(MouseScreenObjectState state) {
+            mouse.Update(state, state.IsOnScreenObject);
+            if (mouse.left == ClickState.Pressed) {
+                if (mouse.leftPressedOnScreen) {
+                    //Start moving with the mouse
+                    start = model.cursor;
+                }
+            } else if(mouse.left == ClickState.Held) {
+                end = model.cursor;
+            } else if (mouse.prevLeft) {
+                end = model.cursor;
+                if(start == end) {
+                    model.AddAction(new SingleEdit(model.cursor, model.sprite.layers[model.currentLayer], model.brushTile));
+                } else if(start != null) {
+                    Dictionary<(int, int), TileRef> affected = new Dictionary<(int, int), TileRef>();
+                    
+                    var cell = model.brushTile;
+
+                    var points = GetPoints();
+                    if (model.selection.Exists) {
+                        points.IntersectWith(model.selection.GetAll());
+                    }
+                        
+                    foreach (var p in points) affected[p] = cell;
+                    model.AddAction(new MultiEdit(model.sprite.layers[model.currentLayer], affected));
+                }
+                start = null;
+            }
+        }
+    }
+
+
     [JsonObject(MemberSerialization.Fields)]
     public class PickMode {
         public bool quickPick;
         public SpriteModel model;
         public MouseWatch mouse;
 
-        public delegate void BrushChanged();
-
-        public event BrushChanged brushChanged;
+        [JsonIgnore]
+        public Action brushChanged;
         public PickMode(SpriteModel model) {
             this.model = model;
             mouse = new MouseWatch();
@@ -1334,7 +1488,6 @@ namespace ASECII {
     public class MoveMode {
         public SpriteModel model;
         public Selection selection;
-        public int layerIndex;
         public Layer layer;
 
         public Point? start;
@@ -1342,10 +1495,9 @@ namespace ASECII {
         public Point end;
         //public Point moved => start.HasValue ? end - start.Value : new Point(0, 0);
         public MouseWatch mouse;
-        public MoveMode(SpriteModel model, Selection selection, int layerIndex, Layer layer) {
+        public MoveMode(SpriteModel model, Selection selection, Layer layer) {
             this.model = model;
             this.selection = selection;
-            this.layerIndex = layerIndex;
             this.layer = layer;
             mouse = new MouseWatch();
         }
@@ -1370,6 +1522,7 @@ namespace ASECII {
             }
         }
     }
+
     public class Selection {
         public HashSet<Rectangle> rects;
         public HashSet<Point> points;

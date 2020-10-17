@@ -63,12 +63,7 @@ namespace ASECII {
                 this.Children.Add(new CellButton(() => index > 0,
                     () => {
                         var below = layers[index - 1];
-
-                        //Flatten 
-                        foreach ((var p, var t) in l.cells) {
-                            below[p] = t;
-                        }
-
+                        below.Flatten(l);
                         layers.RemoveAt(index);
 
                         if (model.currentLayer == index) {

@@ -66,13 +66,94 @@ namespace ASECII {
             visible = true;
             cells = new Dictionary<(int, int), TileRef>();
         }
+        public static (Color, Color, int)? Triple(TileRef t) => t != null ? (t.Foreground, t.Background, t.Glyph) : (Color.Transparent, Color.Transparent, 0);
         public HashSet<Point> GetGlobalFill((Color, Color, int)? source, Point origin, Point end) {
             HashSet<Point> affected = new HashSet<Point>();
             foreach (var p in new Rectangle(origin, end).Positions()) {
-                var pt = this[p];
-                var pg = pt != null ? (pt.Foreground, pt.Background, pt.Glyph) : (Color.Transparent, Color.Transparent, 0);
-                if (pg == source) {
+                var pt = Triple(this[p]);
+                if (pt == source) {
                     affected.Add(p);
+                }
+            }
+            return affected;
+        }
+
+        public HashSet<Point> GetGrowFill((int, int) start, (Color, Color, int)? brush, Point origin, Point end) {
+            HashSet<(int, int)> visited = new HashSet<(int, int)>();
+            HashSet<Point> affected = new HashSet<Point>();
+            Queue<(int, int)> next = new Queue<(int, int)>();
+
+            next.Enqueue(start);
+            while (next.Any()) {
+                (int x, int y) = next.Dequeue();
+
+                {
+                    var p = (x, y);
+                    var c = Triple(this[p]);
+
+                    if (new List<(int, int)>() {
+                                (x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)
+                    }.All(p => Triple(this[p]) != brush)) {
+                        continue;
+                    }
+                    affected.Add(p);
+                }
+
+                foreach ((int x, int y) p in new List<(int, int)>() {
+                            (x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1) }
+                ) {
+
+                    if (visited.Contains(p)) {
+                        continue;
+                    }
+
+                    visited.Add(p);
+
+                    if (p.x < origin.X || p.y < origin.Y || p.x > end.X || p.y > end.Y) {
+                        continue;
+                    }
+                    next.Enqueue(p);
+                }
+            }
+            return affected;
+        }
+        public HashSet<Point> GetOutlineFill((int, int) start, (Color, Color, int)? source, Point origin, Point end) {
+            HashSet<(int, int)> visited = new HashSet<(int, int)>();
+            HashSet<Point> affected = new HashSet<Point>();
+            Queue<(int, int)> next = new Queue<(int, int)>();
+
+            next.Enqueue(start);
+            while (next.Any()) {
+                (int x, int y) = next.Dequeue();
+
+                {
+                    var p = (x, y);
+                    var c = Triple(this[p]);
+
+                    if (c != source) {
+                        continue;
+                    }
+                    if (new List<(int, int)>() {
+                                (x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)
+                    }.Any(p => Triple(this[p]) != source)) {
+                        affected.Add(p);
+                    }
+                }
+
+                foreach ((int x, int y) p in new List<(int, int)>() {
+                                (x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1) }
+                    ) {
+
+                    if (visited.Contains(p)) {
+                        continue;
+                    }
+
+                    visited.Add(p);
+
+                    if (p.x < origin.X || p.y < origin.Y || p.x > end.X || p.y > end.Y) {
+                        continue;
+                    }
+                    next.Enqueue(p);
                 }
             }
             return affected;
@@ -88,9 +169,9 @@ namespace ASECII {
 
                 {
                     var p = (x, y);
-                    var c = this[p];
+                    var c = Triple(this[p]);
 
-                    if ((c != null ? (c.Foreground, c.Background, c.Glyph) : (Color.Transparent, Color.Transparent, 0)) != source) {
+                    if (c != source) {
                         continue;
                     }
 
@@ -130,6 +211,13 @@ namespace ASECII {
             }
             cells = updated;
             pos = new Point(0, 0);
+        }
+
+        //To do: Test with both layers moved
+        public void Flatten(Layer from) {
+            foreach ((var p, var t) in from.cells) {
+                this[p + from.pos] = t;
+            }
         }
     }
 

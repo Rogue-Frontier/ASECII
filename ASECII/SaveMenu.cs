@@ -61,7 +61,7 @@ namespace ASECII {
                         File.WriteAllText($"{filepath}", ASECIILoader.SerializeObject(sprite));
                     }
 
-
+                    sprite.OnLoad();
                     console.Children.Add(new EditorMain(Width, Height, sprite));
                 } catch {
                     throw;
@@ -226,8 +226,7 @@ namespace ASECII {
                 System.Threading.Tasks.Task.Run(StartLoad);
                 void StartLoad() {
                     try {
-                        STypeConverter.PrepareConvert();
-                        var model = JsonConvert.DeserializeObject<SpriteModel>(File.ReadAllText(file), SFileMode.settings);
+                        var model = ASECIILoader.DeserializeObject<SpriteModel>(File.ReadAllText(file));
                         if (model?.filepath == null) {
                             preloaded[file] = null;
                             hoveredFile = null;
