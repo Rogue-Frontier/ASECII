@@ -24,9 +24,35 @@ namespace ASECII {
 
             int left = 0, top = 0, right = 0, bottom = 0;
             foreach(var layer in layers) {
-                if(!layer.visible) {
+                if (!layer.visible) {
                     continue;
                 }
+                Action<TileValue, TileValue> modifier = null;
+                if(layer.applyBackground) {
+                    modifier += (t, current) => {
+                        if (t.Background.A != 0) {
+                            current.Background = t.Background;
+                        }
+                    };
+                }
+                if (layer.applyForeground) {
+                    modifier += (t, current) => {
+                        if (t.Foreground.A != 0) {
+                            current.Foreground = t.Foreground;
+                        }
+                    };
+                }
+                if(layer.applyGlyph) {
+                    modifier += (t, current) => {
+                        if (t.Glyph != 0) {
+                            current.Glyph = t.Glyph;
+                        }
+                    };
+                }
+                if(modifier == null) {
+                    continue;
+                }
+
                 foreach(var (point, tile) in layer.cells) {
                     var (x, y) = point + layer.pos;
 
@@ -36,34 +62,32 @@ namespace ASECII {
                     bottom = Math.Max(bottom, x);
 
                     TileValue t = new TileValue(tile.Foreground, tile.Background, tile.Glyph);
-                    if (preview.TryGetValue((x, y), out var current)) {
-                        if (t.Background.A != 0) {
-                            current.Background = t.Background;
-                        }
-                        if (t.Foreground.A != 0) {
-                            current.Foreground = t.Foreground;
-                            current.Glyph = t.Glyph;
-                        }
-                        preview[(x, y)] = current;
-                    } else {
-                        preview[(x, y)] = t;
+
+                    if (!preview.TryGetValue((x, y), out var current)) {
+                        current = preview[(x, y)] = new TileValue(Color.Transparent, Color.Transparent, 0);
                     }
+
+                    modifier?.Invoke(t, current);
                 }
             }
             origin = new Point(left, top);
             end = new Point(right, bottom);
         }
     }
-    //bool for aoolyForeground, applyBackground, applyGlyph
     public class Layer {
         public Point pos;
-        public bool visible;
+        public bool visible, applyGlyph, applyForeground, applyBackground;
         public Dictionary<(int, int), TileRef> cells;
 
         public string name = "Layer 0";
         public Layer() {
             pos = new Point(0, 0);
             visible = true;
+            
+            applyGlyph = true;
+            applyForeground = true;
+            applyBackground = true;
+
             cells = new Dictionary<(int, int), TileRef>();
         }
         public static (Color, Color, int)? Triple(TileRef t) => t != null ? (t.Foreground, t.Background, t.Glyph) : (Color.Transparent, Color.Transparent, 0);

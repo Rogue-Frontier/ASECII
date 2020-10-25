@@ -137,13 +137,13 @@ namespace ASECII {
             }
         }
     }
-    class ColorBar : SadConsole.Console {
+    class HueBar : SadConsole.Console {
         PickerModel colorPicker;
         PaletteModel paletteModel;
         int index = 0;
         Color[] bar;
 
-        public ColorBar(int width, int height, PaletteModel paletteModel, PickerModel model) : base(width, height) {
+        public HueBar(int width, int height, PaletteModel paletteModel, PickerModel model) : base(width, height) {
             this.paletteModel = paletteModel;
             this.colorPicker = model;
             bar = new Color[width];
@@ -171,6 +171,76 @@ namespace ASECII {
             }
             var c = this.GetCellAppearance(index, 0).Background;
             var g = c.GetTextColor();
+            this.SetCellAppearance(index, 0, new ColoredGlyph(g, c, '*'));
+
+            base.Render(timeElapsed);
+        }
+    }
+
+    enum Channel {
+        R, G, B, A
+    }
+    class ChannelBar : SadConsole.Console {
+        Channel channel;
+        int index = 0;
+        Color[] bar;
+        Color selectedColor => bar[index];
+
+        MouseWatch mouse;
+
+        Action indexChanged;
+
+        public ChannelBar(int width, Channel channel, Action indexChanged) : base(width, 1) {
+            this.channel = channel;
+            bar = new Color[width];
+            mouse = new MouseWatch();
+            this.indexChanged = indexChanged;
+        }
+
+        public void ModifyColor(ref Color c) => c = GetModifier()(c, (byte)(index * 255 / Width));
+
+        public delegate Color SetChannel(Color c, byte amount);
+
+        private SetChannel GetModifier() => channel switch {
+            Channel.R => ColorExtensions.SetRed,
+            Channel.G => ColorExtensions.SetGreen,
+            Channel.B => ColorExtensions.SetBlue,
+            Channel.A => ColorExtensions.SetAlpha
+        };
+        private int GetIndex(Color c) => channel switch
+        {
+            Channel.R => c.R,
+            Channel.G => c.G,
+            Channel.B => c.B,
+            Channel.A => c.A
+        } * (Width - 1) / 255;
+
+        public void UpdateColors(Color source) {
+            SetChannel func = GetModifier();
+
+            for (int i = 0; i < Width; i++) {
+                bar[i] = func(source, (byte)(i * 255 / Width));
+            }
+
+            index = GetIndex(source);
+        }
+        public override bool ProcessMouse(MouseScreenObjectState state) {
+            mouse.Update(state, IsMouseOver);
+            if (state.IsOnScreenObject && state.Mouse.LeftButtonDown && mouse.leftPressedOnScreen) {
+                var (x, y) = state.SurfaceCellPosition;
+                index = x + 1;
+
+                indexChanged();
+            }
+            return base.ProcessMouse(state);
+        }
+        public override void Render(TimeSpan timeElapsed) {
+            for (int x = 0; x < Width; x++) {
+                this.Print(x, 0, " ", Color.Transparent, bar[x]);
+            }
+            var c = bar[index];
+            var back = Color.Black;
+            var g = c.Blend(back).GetTextColor();
             this.SetCellAppearance(index, 0, new ColoredGlyph(g, c, '*'));
 
             base.Render(timeElapsed);

@@ -61,27 +61,36 @@ namespace ASECII {
         MouseWatch mouse;
 
         public Func<Color> color;
-        public Action click;
+        public Action leftClick;
+        public Action rightClick;
 
-        public ColorButton(string text, Func<Color> color, Action click) : base(1, 1) {
+        public ColorButton(string text, Func<Color> color, Action leftClick, Action rightClick = null) : base(1, 1) {
             this.text = text;
             this.color = color;
-            this.click = click;
+            this.leftClick = leftClick;
+            this.rightClick = rightClick;
             this.mouse = new MouseWatch();
         }
         public override bool ProcessMouse(MouseScreenObjectState state) {
             mouse.Update(state, IsMouseOver);
             if (IsMouseOver) {
                 if (mouse.leftPressedOnScreen && mouse.left == ClickState.Released) {
-                    click();
+                    leftClick();
                 }
+                if (mouse.rightPressedOnScreen && mouse.right == ClickState.Released) {
+                    rightClick();
+                }
+
             }
             return base.ProcessMouse(state);
         }
         public override void Render(TimeSpan timeElapsed) {
             var f = color();
             var b = f.GetTextColor();
-            if (IsMouseOver && mouse.nowLeft && mouse.leftPressedOnScreen) {
+            if (IsMouseOver && (
+                (mouse.nowLeft && mouse.leftPressedOnScreen) ||
+                (mouse.nowRight && mouse.rightPressedOnScreen)
+                )) {
                 this.Print(0, 0, text.PadRight(Width), b, f);
             } else {
                 this.Print(0, 0, text.PadRight(Width), f, b);

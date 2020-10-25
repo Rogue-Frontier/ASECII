@@ -1,4 +1,5 @@
-﻿using SadRogue.Primitives;
+﻿using SadConsole;
+using SadRogue.Primitives;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -20,6 +21,16 @@ namespace ASECII {
             return Math.Sqrt(p1.X * p1.X + p1.Y * p1.Y);
         }
         public static Color GetTextColor(this Color c) => c.GetLuma() > 102 ? Color.Black : Color.White;
+        public static ColoredGlyph SetBackground(this ColoredGlyph s, Color background) {
+            var result = s.Clone();
+            result.Background = background;
+            return result;
+        }
+        public static Color Blend(this Color c, Color back) => new Color(
+                c.R * c.A / 255 + back.R * (1 - c.A / 255),
+                c.G * c.A / 255 + back.G * (1 - c.A / 255),
+                c.B * c.A / 255 + back.B * (1 - c.A / 255)
+                );
         public static Color HsvToRgb(double h, double S, double V) {
             int r, g, b;
 
