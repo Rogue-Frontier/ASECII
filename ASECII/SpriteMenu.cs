@@ -366,6 +366,8 @@ namespace ASECII {
             var historyMenu = new HistoryMenu(16, height, model) { Position = new Point(16, 0) };
             historyMenu.UpdateListing();
 
+            model.historyChanged += historyMenu.UpdateListing;
+
             //No per-color transparency; layer-based only
 
             layerMenu.UpdateListing();
@@ -443,8 +445,8 @@ namespace ASECII {
 
                         model.camera += new Point(controlsMenu.Width, 0);
 
-                        spriteMenu = new SpriteMenu(Width - 16, Height, spriteMenu.model) {
-                            Position = new Point(16, 0),
+                        spriteMenu = new SpriteMenu(Width - controlsMenu.Width, Height, spriteMenu.model) {
+                            Position = new Point(controlsMenu.Width, 0),
                             FocusOnMouseClick = true,
                             UseMouse = true
                         };
@@ -505,7 +507,12 @@ namespace ASECII {
 
                         var back = GetBackColor(ax, ay);
                         if (model.sprite.preview.TryGetValue(pos, out var tile)) {
-                            this.SetCellAppearance(ax, ay, tile.cg.SetBackground(tile.cg.Background.Blend(back)));
+                            var cg = tile.cg;
+                            if(cg.Background.A < 255) {
+                                cg = cg.SetBackground(tile.cg.Background.Blend(back));
+                            }
+
+                            this.SetCellAppearance(ax, ay, cg);
                         } else {
                             this.SetCellAppearance(ax, ay, new ColoredGlyph(Color.Transparent, back));
                         }
@@ -521,7 +528,12 @@ namespace ASECII {
                         if (model.InBounds(pos)) {
                             var back = GetBackColor(ax, ay);
                             if (model.sprite.preview.TryGetValue(pos, out var tile)) {
-                                this.SetCellAppearance(ax, ay, tile.cg.SetBackground(tile.cg.Background.Blend(back)));
+                                var cg = tile.cg;
+                                if (cg.Background.A < 255) {
+                                    cg = cg.SetBackground(tile.cg.Background.Blend(back));
+                                }
+
+                                this.SetCellAppearance(ax, ay, cg);
                             } else {
                                 this.SetCellAppearance(ax, ay, new ColoredGlyph(Color.Transparent, back, ' '));
                             }
@@ -926,6 +938,7 @@ namespace ASECII {
 
         public LinkedList<Edit> Undo;
         public LinkedList<Edit> Redo;
+        public Action historyChanged;
 
         public string filepath;
         public Sprite sprite;
@@ -1041,21 +1054,11 @@ namespace ASECII {
             alt = info.IsKeyDown(LeftAlt);
 
             if (ctrl && !shift && info.IsKeyPressed(Z)) {
-                if (Undo.Any()) {
-                    var u = Undo.Last();
-                    Undo.RemoveLast();
-                    u.Undo();
-                    Redo.AddLast(u);
-                }
+                UndoLast();
                 return;
             }
             if (ctrl && shift && info.IsKeyPressed(Z)) {
-                if (Redo.Any()) {
-                    var u = Redo.Last();
-                    Redo.RemoveLast();
-                    u.Do();
-                    Undo.AddLast(u);
-                }
+                RedoLast();
                 return;
             }
             if (mode == Mode.Keyboard) {
@@ -1224,19 +1227,32 @@ namespace ASECII {
             line ??= new LineMode(this);
             fill ??= new FillMode(this);
         }
+        public void RedoLast() {
+            if (Redo.Any()) {
+                var u = Redo.Last();
+                Redo.RemoveLast();
+                u.Do();
+                Undo.AddLast(u);
 
-        public void AddAction(SingleEdit edit) {
-            if(edit.IsRedundant()) {
-                return;
+                historyChanged?.Invoke();
             }
-            Undo.AddLast(edit);
-            Redo.Clear();
-            edit.Do();
+        }
+        public void UndoLast() {
+            if (Undo.Any()) {
+                var u = Undo.Last();
+                Undo.RemoveLast();
+                u.Undo();
+                Redo.AddLast(u);
+
+                historyChanged?.Invoke();
+            }
         }
         public void AddAction(Edit edit) {
             Undo.AddLast(edit);
-            Redo.Clear();
+            //Redo.Clear();
             edit.Do();
+
+            historyChanged?.Invoke();
         }
     }
     public interface Edit {
@@ -1278,6 +1294,11 @@ namespace ASECII {
         public Layer layer;
         public Dictionary<(int, int), TileRef> prev;
         public Dictionary<(int, int), TileRef> next;
+        public MultiEdit() {
+            this.layer = null;
+            this.prev = new Dictionary<(int, int), TileRef>();
+            this.next = new Dictionary<(int, int), TileRef>();
+        }
         public MultiEdit(Layer layer, Dictionary<(int, int), TileRef> next) {
             this.layer = layer;
             this.next = next;
@@ -1286,6 +1307,17 @@ namespace ASECII {
             foreach((var p, var t) in next) {
                 prev[p] = layer[p];
             }
+        }
+        public MultiEdit(Layer layer) {
+            this.layer = layer;
+            this.next = new Dictionary<(int, int), TileRef>();
+            this.prev = new Dictionary<(int, int), TileRef>();
+        }
+        public void Append(SingleEdit e) {
+            if(!prev.ContainsKey(e.cursor)) {
+                prev[e.cursor] = e.prev;
+            }
+            next[e.cursor] = e.next;
         }
         public void Undo() {
             foreach ((var p, var t) in prev) {
@@ -1429,9 +1461,7 @@ namespace ASECII {
         public Color foreground = Color.Red;
         public Color background = Color.Black;
 
-        List<SingleEdit> placed;
-
-        bool placing;
+        MultiEdit placement;
         public TileValue cell {
             get => new TileValue(foreground, background, glyph); set {
                 foreground = value.Foreground;
@@ -1442,8 +1472,6 @@ namespace ASECII {
         public BrushMode(SpriteModel model) {
             this.model = model;
             mouse = new MouseWatch();
-
-            placed = new List<SingleEdit>();
         }
 
         public void ProcessMouse(MouseScreenObjectState state, bool IsMouseOver) {
@@ -1451,11 +1479,6 @@ namespace ASECII {
             glyph = (char)((glyph + state.Mouse.ScrollWheelValueChange / 120 + 255) % 255);
             if(state.IsOnScreenObject) {
                 if (state.Mouse.LeftButtonDown && mouse.leftPressedOnScreen) {
-                    if(mouse.left == ClickState.Pressed) {
-                        placed.Clear();
-                    }
-                    placing = true;
-
                     var prev = model.prevCell;
                     var offset = (model.cursor - prev);
                     var length = offset.Length();
@@ -1470,16 +1493,29 @@ namespace ASECII {
                     if (model.IsEditable(model.cursor)) {
                         Place(model.cursor);
                     }
-                } else if(placing && mouse.left == ClickState.Released) {
-                    placing = false;
                 }
+            }
+
+            if(mouse.left == ClickState.Released) {
+                placement = null;
             }
         }
         void Place(Point p) {
             var layer = model.sprite.layers[model.currentLayer];
             var e = new SingleEdit(p, layer, model.brushTile);
-            model.AddAction(e);
-            placed.Add(e);
+
+            if (e.IsRedundant()) {
+                return;
+            }
+            //Store all of our placements in a compound action
+            if (model.Undo.Last() == placement) {
+                placement.Append(e);
+                e.Do();
+            } else {
+                placement = new MultiEdit(layer);
+                placement.Append(e);
+                model.AddAction(placement);
+            }
         }
     }
     [JsonObject(MemberSerialization.Fields)]
