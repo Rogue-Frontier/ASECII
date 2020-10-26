@@ -98,7 +98,7 @@ namespace ASECII {
                         () => {
                             layers.RemoveAt(index);
 
-                            if (model.currentLayer == index) {
+                            if (model.currentLayer == index && index > 0) {
                                 model.currentLayer--;
                             }
 
