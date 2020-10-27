@@ -178,7 +178,9 @@ namespace ASECII {
     }
 
     enum Channel {
-        R, G, B, A
+        R, G, B, A,
+        H, S, L,
+        Gray
     }
     class ChannelBar : SadConsole.Console {
         Channel channel;
@@ -205,14 +207,26 @@ namespace ASECII {
             Channel.R => ColorExtensions.SetRed,
             Channel.G => ColorExtensions.SetGreen,
             Channel.B => ColorExtensions.SetBlue,
-            Channel.A => ColorExtensions.SetAlpha
+            Channel.A => ColorExtensions.SetAlpha,
+
+            Channel.H => (c, b) => c.SetHSL(b / 255f, c.GetSaturation(), c.GetLuma()),
+            Channel.S => (c, b) => c.SetHSL(c.GetHue(), b / 255f, c.GetLuma()),
+            Channel.L => (c, b) => c.SetHSL(c.GetHue(), c.GetSaturation(), b / 255f),
+
+            Channel.Gray => (c, b) => new Color(b, b, b, c.A)
         };
         private int GetIndex(Color c) => channel switch
         {
             Channel.R => c.R,
             Channel.G => c.G,
             Channel.B => c.B,
-            Channel.A => c.A
+            Channel.A => c.A,
+
+            Channel.H => (int) (c.GetHue() * 255),
+            Channel.S => (int) (c.GetSaturation() * 255),
+            Channel.L => (int) (c.GetLuma() * 255),
+
+            Channel.Gray => (int) (c.R + c.G + c.B) / 3
         } * (Width - 1) / 255;
 
         public void UpdateColors(Color source) {
