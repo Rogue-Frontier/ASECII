@@ -10,62 +10,44 @@ using System.Linq;
 using Console = SadConsole.Console;
 
 namespace ASECII {
-    class HistoryMenu : Console {
+    public class HistoryMenu : Console {
         SpriteModel model;
         List<LabelButton> buttons;
-        int startIndex;
+        ScrollVertical scroll;
+        MouseWatch mouse;
+        int historyLength => model.Undo.Count + model.Redo.Count;
         public HistoryMenu(int width, int height, SpriteModel model) : base(width, height) {
             this.model = model;
             buttons = new List<LabelButton>();
-            CellButton up = null, down = null;
-            up = new CellButton(() => startIndex > 0, Up, '-') { Position = new Point(15, 0) };
-            down = new CellButton(() => startIndex < model.Undo.Count + model.Redo.Count - Height, Down, '+') { Position = new Point(15, Height - 1) };
-            this.Children.Add(up);
-            this.Children.Add(down);
-
-            void Up() {
-                startIndex -= Height / 2;
-                ClampIndex();
-
-                up.UpdateActive();
-                down.UpdateActive();
-
-                UpdateListing();
-            }
-            void Down() {
-                startIndex += Height / 2;
-                ClampIndex();
-
-                up.UpdateActive();
-                down.UpdateActive();
-
-                UpdateListing();
-            }
+            scroll = new ScrollVertical(height, historyLength, UpdateListing) { Position = new Point(width - 1, 0) };
+            this.Children.Add(scroll);
+            mouse = new MouseWatch();
         }
 
 
-        public void ClampIndex() {
-            startIndex = Math.Clamp(startIndex, 0, model.Undo.Count + model.Redo.Count - Height);
-        }
         public void SnapIndex() {
-            startIndex = Math.Max(0, model.Undo.Count - Math.Max(0, Height - model.Redo.Count));
+            scroll.index = Math.Max(0, model.Undo.Count - Math.Max(0, Height - model.Redo.Count));
 
             //Math.Max(0, model.Undo.Count);
             //Math.Max(0, model.Undo.Count - Height + model.Redo.Count);
+        }
+        public void HistoryChanged() {
+            scroll.range = historyLength;
+            UpdateListing();
         }
         public void UpdateListing() {
             buttons.ForEach(this.Children.Remove);
             buttons.Clear();
 
             int y = 0;
-            foreach(var e in model.Undo.Skip(startIndex)) {
+            foreach(var e in model.Undo.Skip(scroll.index)) {
                 var b = new LabelButton($"<{e.Name}", () => UndoTo(e)) { Position = new Point(0, y) };
                 this.Children.Add(b);
                 buttons.Add(b);
                 y++;
             }
 
-            foreach (var e in model.Redo.Reverse().Skip(startIndex - model.Undo.Count())) {
+            foreach (var e in model.Redo.Reverse().Skip(scroll.index - model.Undo.Count())) {
                 var b = new LabelButton($">{e.Name}", () => RedoTo(e)) { Position = new Point(0, y) };
                 this.Children.Add(b);
                 buttons.Add(b);
@@ -95,14 +77,22 @@ namespace ASECII {
             UpdateListing();
         }
         public override bool ProcessMouse(MouseScreenObjectState state) {
-            startIndex += state.Mouse.ScrollWheelValueChange / 60;
-            ClampIndex();
+            scroll.index += state.Mouse.ScrollWheelValueChange / 60;
             UpdateListing();
+
+            mouse.Update(state, IsMouseOver);
+            if (mouse.left == ClickState.Held && mouse.leftPressedOnScreen) {
+                var deltaY = mouse.prevPos.Y - mouse.nowPos.Y;
+                if (deltaY != 0) {
+                    scroll.index += deltaY;
+                }
+            }
+
             return base.ProcessMouse(state);
         }
         public override void Render(TimeSpan delta) {
             this.Clear();
-            var mid = model.Undo.Skip(startIndex).Count();
+            var mid = model.Undo.Skip(scroll.index).Count();
             if(mid > 0 && mid < Height) {
                 this.Print(0, mid, new string('-', 16));
             } else if(mid <= 0) {
@@ -110,19 +100,6 @@ namespace ASECII {
             } else if(mid >= Height) {
                 this.Print(0, Height-1, new string('v', 16));
             }
-
-            var count = (model.Undo.Count + model.Redo.Count);
-
-            if(count > Height) {
-                var barSize = Height * Height / count;
-                var y = Height * startIndex / count;
-
-                for(int i = 0; i < barSize; i++) {
-                    this.Print(Width - 1, y + i, new ColoredGlyph(Color.White, Color.Black, '#'));
-                }
-            }
-            
-
             base.Render(delta);
         }
     }
