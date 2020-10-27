@@ -366,7 +366,7 @@ namespace ASECII {
             var historyMenu = new HistoryMenu(16, height, model) { Position = new Point(16, 0) };
             historyMenu.UpdateListing();
 
-            model.historyChanged += historyMenu.UpdateListing;
+            model.historyChanged += historyMenu.HistoryChanged;
 
             //No per-color transparency; layer-based only
 
@@ -1053,14 +1053,22 @@ namespace ASECII {
             shift = info.IsKeyDown(LeftShift);
             alt = info.IsKeyDown(LeftAlt);
 
-            if (ctrl && !shift && info.IsKeyPressed(Z)) {
-                UndoLast();
-                return;
+            if(info.IsKeyPressed(Z)) {
+                if (ctrl) {
+                    if (alt) {
+
+                    } else {
+                        if (shift) {
+                            RedoLast();
+                            return;
+                        } else {
+                            UndoLast();
+                            return;
+                        }
+                    }
+                }
             }
-            if (ctrl && shift && info.IsKeyPressed(Z)) {
-                RedoLast();
-                return;
-            }
+
             if (mode == Mode.Keyboard) {
                 if(info.IsKeyPressed(Escape)) {
                     mode = Mode.Brush;
