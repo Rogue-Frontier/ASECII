@@ -31,7 +31,7 @@ namespace ASECII {
                 if(layer.applyBackground) {
                     modifier += (t, current) => {
                         if (t.Background.A != 0) {
-                            current.Background = t.Background;
+                            current.Background = t.Background.Blend(current.Background);
                         }
                     };
                 }
@@ -309,6 +309,6 @@ namespace ASECII {
         public Color Background => Color.White;
         public int Glyph { get; set; }
         public ColoredGlyph cg => new ColoredGlyph(Foreground, Background, Glyph);
-
+        public NotepadTile(int Glyph) => this.Glyph = Glyph;
     }
 }
