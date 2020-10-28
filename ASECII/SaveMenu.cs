@@ -40,7 +40,7 @@ namespace ASECII {
         public void Enter(Console console, string filepath) {
             model.filepath = filepath;
             model.Save(renderer);
-            console.Parent.Children.Remove(console);
+            Game.Instance.Screen = console;
         }
     }
     class LoadMode : FileMode {
@@ -62,7 +62,9 @@ namespace ASECII {
                     }
 
                     sprite.OnLoad();
-                    console.Children.Add(new EditorMain(Width, Height, sprite));
+                    Game.Instance.Screen = new EditorMain(Width, Height, sprite);
+
+                    Program.SaveState(new EditorState(filepath));
                 } catch {
                     throw;
                 }
@@ -279,8 +281,6 @@ namespace ASECII {
                 var f = textbox.text;
                 mode.Enter(this, f);
                 AddRecentFile(f);
-
-                
             }
             return base.ProcessKeyboard(keyboard);
         }

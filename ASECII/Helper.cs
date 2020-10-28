@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Console = SadConsole.Console;
 
 namespace ASECII {
     public static class Helper {
@@ -20,12 +21,21 @@ namespace ASECII {
         public static double Length(this Point p1) {
             return Math.Sqrt(p1.X * p1.X + p1.Y * p1.Y);
         }
-        public static Color GetTextColor(this Color c) => c.GetLuma() > 102 ? Color.Black : Color.White;
-        public static ColoredGlyph SetBackground(this ColoredGlyph s, Color background) {
-            var result = s.Clone();
-            result.Background = background;
-            return result;
+
+        public static bool ToggleChild(this Console parent, Console child) {
+            if (parent.Children.Contains(child)) {
+                parent.Children.Remove(child);
+                return false;
+            } else {
+                parent.Children.Add(child);
+                return true;
+            }
         }
+
+        public static Color GetTextColor(this Color c) => c.GetLuma() > 102 ? Color.Black : Color.White;
+        public static ColoredGlyph SetBackground(this ColoredGlyph s, Color background) => new ColoredGlyph(s.Foreground, background, s.Glyph);
+        public static ColoredGlyph SetGlyph(this ColoredGlyph s, int Glyph) => new ColoredGlyph(s.Foreground, s.Background, Glyph);
+
         public static Color ToGray(this Color c) => c.SetGray((byte)(c.GetBrightness() * 255));
         public static Color SetGray(this Color c, byte b) => new Color(b, b, b, c.A);
         public static Color Blend(this Color c, Color back) => new Color(

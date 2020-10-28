@@ -546,35 +546,29 @@ namespace ASECII {
             void OnKeyboard(Keyboard info) {
                 
                 if (info.IsKeyPressed(Tab)) {
-                    bool controlsVisible = this.Children.Contains(controlsMenu);
-
-                    this.Children.Remove(spriteMenu);
-                    if (controlsVisible) {
-                        this.Children.Remove(controlsMenu);
-
-                        model.camera += new Point(-controlsMenu.Width, 0);
-                        spriteMenu = new SpriteMenu(Width, Height, spriteMenu.model) {
-                            Position = new Point(0, 0),
-                            FocusOnMouseClick = true,
-                            UseMouse = true
-                        };
-                    } else {
-                        this.Children.Add(controlsMenu);
-
-                        model.camera += new Point(controlsMenu.Width, 0);
-
-                        spriteMenu = new SpriteMenu(Width - controlsMenu.Width, Height, spriteMenu.model) {
-                            Position = new Point(controlsMenu.Width, 0),
-                            FocusOnMouseClick = true,
-                            UseMouse = true
-                        };
-                    }
-                    spriteMenu.OnKeyboard += OnKeyboard;
-                    this.Children.Add(spriteMenu);
+                    bool controlsVisible = this.ToggleChild(controlsMenu);
+                    model.camera += new Point((controlsVisible ? 1 : -1) * controlsMenu.Width, 0);
+                    PlaceUI();
                 }
-
-                if (info.IsKeyPressed(Z)) {
-                    //Show undo/redo history menu
+                if (info.IsKeyPressed(Z) &&
+                    model.mode != Mode.Keyboard &&
+                    !(info.IsKeyDown(LeftControl) || info.IsKeyDown(LeftShift) || info.IsKeyDown(LeftAlt))) {
+                    bool historyVisible = this.ToggleChild(historyMenu);
+                    model.camera += new Point((historyVisible ? 1 : -1) * historyMenu.Width, 0);
+                    PlaceUI();
+                }
+                void PlaceUI() {
+                    int x = 0;
+                    if (Children.Contains(controlsMenu)) {
+                        controlsMenu.Position = new Point(x, 0);
+                        x += controlsMenu.Width;
+                    }
+                    if(Children.Contains(historyMenu)) {
+                        historyMenu.Position = new Point(x, 0);
+                        x += historyMenu.Width;
+                    }
+                    spriteMenu.Position = new Point(x, 0);
+                    spriteMenu.Resize(Width - x, Height, Width - x, Height, false);
                 }
             }
         }
@@ -599,6 +593,13 @@ namespace ASECII {
             base.Update(timeElapsed);
         }
         public override void Render(TimeSpan timeElapsed) {
+            /*
+            if(model.rendered) {
+                return;
+            }
+            model.rendered = true;
+            */
+
             this.Clear();
             model.ticks++;
             model.ticksSelect++;
@@ -736,24 +737,62 @@ namespace ASECII {
                             //SetCellAppearance(hx - model.keyboard.margin.X + model.camera.X - 1, hy - model.keyboard.keyCursor.Y + model.camera.Y, new Cell(c.Foreground, c.Background, '>'));
                         }
                         break;
-                    case Mode.SelectRect:
-                        if (model.ticksSelect % 30 < 15) {
-                            DrawSelection();
+                    case Mode.SelectRect: {
 
-                            if (model.selectRect.GetAdjustedRect(out Rectangle r)) {
-                                DrawRect(r);
-                            } else {
-                                var p = model.cursorScreen;
-                                DrawBox(p.X, p.Y, new BoxGlyph { n = Line.Single, e = Line.Single, s = Line.Single, w = Line.Single });
+                            int x = model.cursorScreen.X + 2;
+                            int y = model.cursorScreen.Y;
+
+                            var f = model.brush.foreground;
+                            var b = model.brush.background;
+                            this.Print(x, y, new ColoredString($"{model.cursorScreen.X,4} {model.cursorScreen.Y,4}", f, b));
+
+
+                            if (model.ticksSelect % 60 < 30) {
+                                DrawSelection();
+                                if (GetRectDisplay(out Rectangle r)) {
+                                    y += 1;
+                                    this.Print(x, y, new ColoredString($"{r.Width,4} {r.Height,4}", f, b));
+
+                                    DrawRect(r);
+                                } else {
+                                    var p = model.cursorScreen;
+                                    DrawBox(p.X, p.Y, new BoxGlyph { n = Line.Single, e = Line.Single, s = Line.Single, w = Line.Single });
+                                }
+                            } else if (GetRectDisplay(out Rectangle r)) {
+                                y += 1;
+                                this.Print(x, y, new ColoredString($"{r.Width,4} {r.Height,4}", f, b));
                             }
+
+                            bool GetRectDisplay(out Rectangle r) => model.selectRect.GetAdjustedRect(out r) ||
+                                (r = model.selection.rects.FirstOrDefault(r => r.Contains(model.cursor))) != Rectangle.Empty;
+                            break;
                         }
-                        
-                        break;
-                    case Mode.SelectWand:
-                        if (model.ticksSelect % 30 < 15) {
-                            DrawSelection();
+                    case Mode.SelectLasso: {
+                            int x = model.cursorScreen.X + 2;
+                            int y = model.cursorScreen.Y;
+
+                            var f = model.brush.foreground;
+                            var b = model.brush.background;
+                            this.Print(x, y, new ColoredString($"{model.cursorScreen.X,4} {model.cursorScreen.Y,4}", f, b));
+
+                            if (model.ticksSelect % 30 < 15) {
+                                DrawSelection();
+                            }
+                            break;
                         }
-                        break;
+                    case Mode.SelectWand: {
+                            int x = model.cursorScreen.X + 2;
+                            int y = model.cursorScreen.Y;
+
+                            var f = model.brush.foreground;
+                            var b = model.brush.background;
+                            this.Print(x, y, new ColoredString($"{model.cursorScreen.X,4} {model.cursorScreen.Y,4}", f, b));
+
+                            if (model.ticksSelect % 30 < 15) {
+                                DrawSelection();
+                            }
+                            break;
+                        }
                     case Mode.Move:
                         DrawSelection();
                         //Draw offset
@@ -1022,13 +1061,17 @@ namespace ASECII {
             if (info.IsKeyPressed(Escape)) {
                 if(model.mode != Mode.Read) {
                     model.ProcessKeyboard(info);
+                } else {
+                    var p = Game.Instance.Screen;
+                    Game.Instance.Screen = new FileMenu(p.Width, p.Height, new LoadMode());
+                    Program.SaveState(null);
                 }
             } else if (info.IsKeyPressed(S) && info.IsKeyDown(LeftControl)) {
                 //File.WriteAllText(Path.Combine(Environment.CurrentDirectory, Path.GetFileName(Path.GetTempFileName())), JsonConvert.SerializeObject(model));
                 
                 if(model.filepath == null || info.IsKeyDown(LeftShift)) {
-                    var s = SadConsole.Game.Instance.Screen;
-                    s.Children.Add(new FileMenu(s.Width, s.Height, new SaveMode(model, this)));
+                    var p = Game.Instance.Screen;
+                    Game.Instance.Screen = new FileMenu(p.Width, p.Height, new SaveMode(model, this));
                 } else {
                     model.Save(this);
                 }
@@ -1054,6 +1097,8 @@ namespace ASECII {
     [JsonObject(MemberSerialization.Fields)]
     public class SpriteModel {
         public ColorMode colorMode = ColorMode.RGB;
+
+        public bool rendered = false;
 
         public bool infinite = true;
         public int width, height;
@@ -1084,6 +1129,7 @@ namespace ASECII {
         public MoveMode move;
 
         public Selection selection;
+        public SelectOutlineMode selectLasso;
         public SelectRectMode selectRect;
         public SelectWandMode selectWand;
         public PanMode pan;
@@ -1116,6 +1162,7 @@ namespace ASECII {
             erase = new EraseMode(this);
             keyboard = new KeyboardMode(this);
             selection = new Selection();
+            selectLasso = new SelectOutlineMode(this, selection);
             selectRect = new SelectRectMode(this, selection);
             selectWand = new SelectWandMode(this, selection);
             pan = new PanMode(this);
@@ -1212,18 +1259,6 @@ namespace ASECII {
                         case Mode.Brush:
                             SetMode(Mode.Read);
                             break;
-                        case Mode.Line:
-                            SetMode(Mode.Brush);
-                            break;
-                        case Mode.Fill:
-                            SetMode(Mode.Brush);
-                            break;
-                        case Mode.Pick:
-                            SetMode(Mode.Brush);
-                            break;
-                        case Mode.SelectWand:
-                            SetMode(Mode.Brush);
-                            break;
                         default:
                             SetMode(Mode.Brush);
                             break;
@@ -1256,16 +1291,18 @@ namespace ASECII {
                     SetMode(Mode.Fill);
                 } else if (info.IsKeyPressed(I)) {
                     SetMode(Mode.Pick);
-                } else if(info.IsKeyPressed(L)) {
+                } else if (info.IsKeyPressed(L)) {
                     SetMode(Mode.Line);
                 } else if (info.IsKeyPressed(M)) {
-                    SetMode(mode = Mode.Move);
+                    SetMode(Mode.Move);
                     if (selection.Exists) {
                         var moveLayer = Cut(selection.GetAll());
                         move = new MoveMode(this, selection, moveLayer);
                     } else {
                         move = new MoveMode(this, selection, sprite.layers[currentLayer]);
                     }
+                } else if(info.IsKeyPressed(O)) {
+                    SetMode(Mode.SelectLasso);
                 } else if (info.IsKeyPressed(S) && !info.IsKeyDown(LeftControl)) {
                     SetMode(Mode.SelectRect);
                 } else if (info.IsKeyPressed(T)) {
@@ -1339,8 +1376,12 @@ namespace ASECII {
                 case Mode.Erase:
                     erase.ProcessMouse(state, IsMouseOver);
                     break;
+                case Mode.SelectLasso:
+                    selectLasso ??= new SelectOutlineMode(this, selection);
+                    selectLasso.ProcessMouse(state, ctrl, shift, alt);
+                    break;
                 case Mode.SelectRect:
-                    selectRect.ProcessMouse(state, ctrl, shift);
+                    selectRect.ProcessMouse(state, ctrl, shift, alt);
                     break;
                 case Mode.SelectWand:
                     selectWand = new SelectWandMode(this, selection);
@@ -1979,6 +2020,92 @@ namespace ASECII {
         }
 
     }
+
+    public class SelectOutlineMode {
+        public SpriteModel model;
+        public Selection selection;
+        HashSet<Point> outline;
+        Point start;
+        bool prevLeft;
+        public SelectOutlineMode(SpriteModel model, Selection selection) {
+            this.model = model;
+            this.selection = selection;
+            outline = new HashSet<Point>();
+        }
+
+        public void ProcessMouse(MouseScreenObjectState state, bool ctrl, bool shift, bool alt) {
+            if (state.IsOnScreenObject) {
+                if (state.Mouse.LeftButtonDown) {
+                    if (prevLeft) {
+
+                        HashSet<Point> affected;
+                        if(outline.Any()) {
+                            affected = GetLine(outline.Last(), model.cursor);
+                        } else {
+                            affected = new HashSet<Point>() { model.cursor };
+                        }
+                        if (shift) {
+                            selection.UsePointsOnly();
+                            selection.points.ExceptWith(affected);
+                        } else {
+                            selection.points.UnionWith(affected);
+                            outline.UnionWith(affected);
+                        }
+                        selection.selectionChanged?.Invoke();
+                    } else {
+                        if (!ctrl && !shift) {
+                            selection.Clear();
+                        }
+
+                        start = model.cursor;
+                        outline.Clear();
+                    }
+                } else if(prevLeft) {
+
+                    if(alt) {
+                        //Lasso selection mode
+                        var l = GetLine(start, model.cursor);
+                        selection.points.UnionWith(l);
+                        outline.UnionWith(l);
+
+                        var center = new Point(0, 0);
+                        foreach(var p in outline) {
+                            center += p;
+                        }
+                        center /= outline.Count;
+
+                        var affected = model.sprite.layers[model.currentLayer].GetBoundedFill(center, outline.Select(p => (p.X, p.Y)).ToHashSet(), model.sprite.origin, model.sprite.end);
+                        if(shift) {
+                            selection.UsePointsOnly();
+                            selection.points.ExceptWith(affected);
+                        } else {
+                            selection.points.UnionWith(affected);
+                        }
+
+                        selection.selectionChanged?.Invoke();
+
+                    } else {
+                        //Regular brush selection mode
+                    }
+
+                }
+                prevLeft = state.Mouse.LeftButtonDown;
+            }
+        }
+        public HashSet<Point> GetLine(Point start, Point end) {
+            var offset = end - start;
+            double distance = offset.Length();
+            (double dx, double dy) = (offset.X / distance, offset.Y / distance);
+            (double x, double y) = (start.X, start.Y);
+
+            HashSet<Point> points = new HashSet<Point>();
+            for (int i = 0; i < distance; i++) {
+                points.Add(((int)Math.Round(x), (int)Math.Round(y)));
+                (x, y) = (x + dx, y + dy);
+            }
+            return points;
+        }
+    }
     //Add a menu to set and use pre-selected regions for editing
     public class SelectRectMode {
         public SpriteModel model;
@@ -1992,13 +2119,19 @@ namespace ASECII {
             this.model = model;
             this.selection = selection;
         }
-        public void ProcessMouse(MouseScreenObjectState state, bool ctrl, bool shift) {
+        public void ProcessMouse(MouseScreenObjectState state, bool ctrl, bool shift, bool alt) {
             if(state.IsOnScreenObject) {
                 if (state.Mouse.LeftButtonDown) {
 
                     if (prevLeft) {
                         if (end != model.cursor) {
                             end = model.cursor;
+
+                            if (alt) {
+                                var offset = end - start.Value;
+                                var size = Math.MinMagnitude(offset.X, offset.Y);
+                                end = start.Value + new Point(Math.Sign(offset.X), Math.Sign(offset.Y)) * size;
+                            }
 
                             int leftX = Math.Min(start.Value.X, end.X);
                             int width = Math.Max(start.Value.X, end.X) - leftX + 1;
@@ -2064,7 +2197,7 @@ namespace ASECII {
                     var t = layer[start];
                     var source = t != null ? (t.Foreground, t.Background, t.Glyph) : (Color.Transparent, Color.Transparent, 0);
 
-                    HashSet<Point> affected = new HashSet<Point>();
+                    HashSet<Point> affected;
                     if (alt) {
                         affected = layer.GetGlobalFill(source, model.sprite.origin, model.sprite.end);
                     } else {

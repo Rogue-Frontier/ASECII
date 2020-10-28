@@ -221,6 +221,44 @@ namespace ASECII {
             return affected;
         }
 
+        public HashSet<Point> GetBoundedFill((int, int) start, HashSet<(int, int)> bounds, Point origin, Point end) {
+            HashSet<(int, int)> visited = new HashSet<(int, int)>();
+            HashSet<Point> affected = new HashSet<Point>();
+            Queue<(int, int)> next = new Queue<(int, int)>();
+
+            next.Enqueue(start);
+            while (next.Any()) {
+                (int x, int y) = next.Dequeue();
+
+                {
+                    var p = (x, y);
+
+                    if (bounds.Contains(p)) {
+                        continue;
+                    }
+
+                    affected.Add(p);
+                }
+
+                foreach ((int x, int y) p in new List<(int, int)>() {
+                                (x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1) }
+                    ) {
+
+                    if (visited.Contains(p)) {
+                        continue;
+                    }
+
+                    visited.Add(p);
+
+                    if (p.x < origin.X || p.y < origin.Y || p.x > end.X || p.y > end.Y) {
+                        continue;
+                    }
+                    next.Enqueue(p);
+                }
+            }
+            return affected;
+        }
+
         public TileRef this[Point p] {
             get => cells.TryGetValue(p - pos, out TileRef cg) ? cg : null;
             set {

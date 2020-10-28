@@ -15,15 +15,28 @@ namespace ASECII {
         List<LabelButton> buttons;
         ScrollVertical scroll;
         MouseWatch mouse;
+
+        DateTime lastScroll;
         int historyLength => model.Undo.Count + model.Redo.Count;
         public HistoryMenu(int width, int height, SpriteModel model) : base(width, height) {
             this.model = model;
             buttons = new List<LabelButton>();
-            scroll = new ScrollVertical(height, historyLength, UpdateListing) { Position = new Point(width - 1, 0) };
+            scroll = new ScrollVertical(height, historyLength, Scrolled) { Position = new Point(width - 1, 0) };
             this.Children.Add(scroll);
             mouse = new MouseWatch();
-        }
 
+            void Scrolled() {
+                lastScroll = DateTime.Now;
+            }
+        }
+        public override void Update(TimeSpan delta) {
+            base.Update(delta);
+
+            if(lastScroll != DateTime.UnixEpoch && (DateTime.Now - lastScroll).TotalSeconds > 1) {
+                lastScroll = DateTime.UnixEpoch;
+                UpdateListing();
+            }
+        }
 
         public void SnapIndex() {
             scroll.index = Math.Max(0, model.Undo.Count - Math.Max(0, Height - model.Redo.Count));
