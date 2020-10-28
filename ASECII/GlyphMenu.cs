@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using SadRogue.Primitives;
 
 namespace ASECII {
     class GlyphMenu : SadConsole.Console {
@@ -32,9 +33,28 @@ namespace ASECII {
             return base.ProcessMouse(state);
         }
         public override void Render(TimeSpan timeElapsed) {
+
+            Color f, b;
+            switch(spriteModel.colorMode) {
+                case ColorMode.RGB:
+                    f = spriteModel.brush.foreground;
+                    b = spriteModel.brush.background;
+                    break;
+                case ColorMode.Grayscale:
+                    f = spriteModel.brush.foreground.ToGray();
+                    b = spriteModel.brush.background.ToGray();
+                    break;
+                case ColorMode.Notepad:
+                default:
+                    f = Color.Black;
+                    b = Color.White;
+                    break;
+            }
+
+
             for (int i = 0; i < 256; i++) {
                 string s = ((char)i).ToString();
-                this.Print(i % Width, i / Width, s, spriteModel.brush.foreground, spriteModel.brush.background);
+                this.Print(i % Width, i / Width, s, f, b);
             }
             var x = spriteModel.brush.glyph % Width;
             var y = spriteModel.brush.glyph / Width;

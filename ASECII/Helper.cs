@@ -26,10 +26,12 @@ namespace ASECII {
             result.Background = background;
             return result;
         }
+        public static Color ToGray(this Color c) => c.SetGray((byte)(c.GetBrightness() * 255));
+        public static Color SetGray(this Color c, byte b) => new Color(b, b, b, c.A);
         public static Color Blend(this Color c, Color back) => new Color(
-                c.R * c.A / 255 + back.R * (1 - c.A / 255),
-                c.G * c.A / 255 + back.G * (1 - c.A / 255),
-                c.B * c.A / 255 + back.B * (1 - c.A / 255)
+                (c.R * c.A) / 255 + (byte) (back.R * (1 - c.A / 255f)),
+                (c.G * c.A) / 255 + (byte) (back.G * (1 - c.A / 255f)),
+                (c.B * c.A) / 255 + (byte) (back.B * (1 - c.A / 255f))
                 );
         public static Color HsvToRgb(double h, double S, double V) {
             int r, g, b;
