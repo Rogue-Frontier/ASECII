@@ -776,7 +776,17 @@ namespace ASECII {
                             this.Print(x, y, new ColoredString($"{model.cursorScreen.X,4} {model.cursorScreen.Y,4}", f, b));
 
                             if (model.ticksSelect % 30 < 15) {
-                                DrawSelection();
+                                IEnumerable<Point> points = model.selectLasso.outline;
+                                if(points.Any()) {
+                                    var start = points.First();
+                                    var end = points.Last();
+                                    points = points.Union(model.selectLasso.GetLine(start, model.cursor));
+                                    points = points.Union(model.selectLasso.GetLine(end, model.cursor));
+                                    DrawSelectionWith(points);
+                                } else {
+                                    DrawSelection();
+                                }
+
                             }
                             break;
                         }
@@ -796,7 +806,6 @@ namespace ASECII {
                     case Mode.Move:
                         DrawSelection();
                         //Draw offset
-
 
                         //TO DO: Fix
                         if (model.ticksSelect % 10 < 5 && model.move.current.HasValue) {
@@ -928,8 +937,9 @@ namespace ASECII {
             
 
             base.Render(timeElapsed);
-            void DrawSelection() {
-                var all = model.selection.GetAll();
+            void DrawSelection() => DrawPoints(model.selection.GetAll());
+            void DrawSelectionWith(IEnumerable<Point> points) => DrawPoints(model.selection.GetAll().Union(points));
+            void DrawPoints(IEnumerable<Point> all) {
                 foreach(var point in all) {
                     
                     bool n = Contains(new Point(0, -1)), e = Contains(new Point(1, 0)), s = Contains(new Point(0, +1)), w = Contains(new Point(-1, 0)), ne = Contains(new Point(1, -1)), se = Contains(new Point(1, 1)), sw = Contains(new Point(-1, 1)), nw = Contains(new Point(-1, -1));
@@ -2024,8 +2034,7 @@ namespace ASECII {
     public class SelectOutlineMode {
         public SpriteModel model;
         public Selection selection;
-        HashSet<Point> outline;
-        Point start;
+        public HashSet<Point> outline;
         bool prevLeft;
         public SelectOutlineMode(SpriteModel model, Selection selection) {
             this.model = model;
@@ -2035,61 +2044,92 @@ namespace ASECII {
 
         public void ProcessMouse(MouseScreenObjectState state, bool ctrl, bool shift, bool alt) {
             if (state.IsOnScreenObject) {
-                if (state.Mouse.LeftButtonDown) {
-                    if (prevLeft) {
-
-                        HashSet<Point> affected;
-                        if(outline.Any()) {
-                            affected = GetLine(outline.Last(), model.cursor);
+                if(alt) {
+                    //Polygon selection mode
+                    if (state.Mouse.LeftButtonDown) {
+                        if (prevLeft) {
+                            //Hold
+                            UpdateOutline();
+                        } else if (outline.Any()) {
+                            //Click
+                            if (model.cursor == outline.Last()) {
+                                CloseLoop();
+                            } else {
+                                //Add line
+                                UpdateOutline();
+                            }
                         } else {
-                            affected = new HashSet<Point>() { model.cursor };
-                        }
-                        if (shift) {
-                            selection.UsePointsOnly();
-                            selection.points.ExceptWith(affected);
-                        } else {
-                            selection.points.UnionWith(affected);
-                            outline.UnionWith(affected);
-                        }
-                        selection.selectionChanged?.Invoke();
-                    } else {
-                        if (!ctrl && !shift) {
-                            selection.Clear();
-                        }
+                            //Click
+                            //Start a new polygon
 
-                        start = model.cursor;
-                        outline.Clear();
+                            ClearExistingSelection();
+                            BeginOutline();
+                        }
                     }
-                } else if(prevLeft) {
-
-                    if(alt) {
-                        //Lasso selection mode
-                        var l = GetLine(start, model.cursor);
-                        selection.points.UnionWith(l);
-                        outline.UnionWith(l);
-
-                        var center = new Point(0, 0);
-                        foreach(var p in outline) {
-                            center += p;
-                        }
-                        center /= outline.Count;
-
-                        var affected = model.sprite.layers[model.currentLayer].GetBoundedFill(center, outline.Select(p => (p.X, p.Y)).ToHashSet(), model.sprite.origin, model.sprite.end);
-                        if(shift) {
-                            selection.UsePointsOnly();
-                            selection.points.ExceptWith(affected);
+                    prevLeft = state.Mouse.LeftButtonDown;
+                } else {
+                    //Lasso selection mode
+                    if (state.Mouse.LeftButtonDown) {
+                        if (prevLeft) {
+                            UpdateOutline();
                         } else {
-                            selection.points.UnionWith(affected);
+                            ClearExistingSelection();
+                            BeginOutline();
                         }
-
-                        selection.selectionChanged?.Invoke();
-
-                    } else {
-                        //Regular brush selection mode
+                    } else if (prevLeft) {
+                        CloseLoop();
+                    } else if(outline.Any()) {
+                        //For instance, if we release Alt 
+                        CloseLoop();
                     }
-
+                    prevLeft = state.Mouse.LeftButtonDown;
                 }
-                prevLeft = state.Mouse.LeftButtonDown;
+                void UpdateOutline() {
+                    //Add points to the outline
+                    HashSet<Point> affected;
+                    if (outline.Any()) {
+                        affected = GetLine(outline.Last(), model.cursor);
+                    } else {
+                        affected = new HashSet<Point>() { model.cursor };
+                    }
+                    outline.UnionWith(affected);
+                }
+
+                void CloseLoop() {
+                    //Close the loop
+                    var l = GetLine(outline.First(), model.cursor);
+                    outline.UnionWith(l);
+
+                    var center = new Point(0, 0);
+                    foreach (var p in outline) {
+                        center += p;
+                    }
+                    center /= outline.Count;
+
+                    var affected = model.sprite.layers[model.currentLayer].GetBoundedFill(center, outline.Select(p => (p.X, p.Y)).ToHashSet(), model.sprite.origin, model.sprite.end);
+                    if (shift) {
+                        selection.UsePointsOnly();
+                        selection.points.ExceptWith(outline);
+                        selection.points.ExceptWith(affected);
+                    } else {
+                        selection.points.UnionWith(outline);
+                        selection.points.UnionWith(affected);
+                    }
+
+                    outline.Clear();
+                    selection.selectionChanged?.Invoke();
+                }
+
+                void BeginOutline() {
+                    var start = model.cursor;
+                    outline.Clear();
+                    outline.Add(start);
+                }
+                void ClearExistingSelection() {
+                    if (!ctrl && !shift) {
+                        selection.Clear();
+                    }
+                }
             }
         }
         public HashSet<Point> GetLine(Point start, Point end) {
