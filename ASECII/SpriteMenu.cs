@@ -767,7 +767,7 @@ namespace ASECII {
                                 (r = model.selection.rects.FirstOrDefault(r => r.Contains(model.cursor))) != Rectangle.Empty;
                             break;
                         }
-                    case Mode.SelectLasso: {
+                    case Mode.SelectOutline: {
                             int x = model.cursorScreen.X + 2;
                             int y = model.cursorScreen.Y;
 
@@ -776,12 +776,12 @@ namespace ASECII {
                             this.Print(x, y, new ColoredString($"{model.cursorScreen.X,4} {model.cursorScreen.Y,4}", f, b));
 
                             if (model.ticksSelect % 30 < 15) {
-                                IEnumerable<Point> points = model.selectLasso.outline;
+                                IEnumerable<Point> points = model.selectOutline.outline;
                                 if(points.Any()) {
                                     var start = points.First();
                                     var end = points.Last();
-                                    points = points.Union(model.selectLasso.GetLine(start, model.cursor));
-                                    points = points.Union(model.selectLasso.GetLine(end, model.cursor));
+                                    points = points.Union(model.selectOutline.GetLine(start, model.cursor));
+                                    points = points.Union(model.selectOutline.GetLine(end, model.cursor));
                                     DrawSelectionWith(points);
                                 } else {
                                     DrawSelection();
@@ -1102,7 +1102,7 @@ namespace ASECII {
         RGB, Grayscale, Notepad
     }
     public enum Mode {
-        Read, Brush, Fill, Pick, Erase, SelectRect, SelectCircle, SelectLasso, SelectPoly, SelectWand, Move, Keyboard, Pan, Line,
+        Read, Brush, Fill, Pick, Erase, SelectRect, SelectCircle, SelectOutline, SelectWand, Move, Keyboard, Pan, Line,
     }
     [JsonObject(MemberSerialization.Fields)]
     public class SpriteModel {
@@ -1139,7 +1139,7 @@ namespace ASECII {
         public MoveMode move;
 
         public Selection selection;
-        public SelectOutlineMode selectLasso;
+        public SelectOutlineMode selectOutline;
         public SelectRectMode selectRect;
         public SelectWandMode selectWand;
         public PanMode pan;
@@ -1172,7 +1172,7 @@ namespace ASECII {
             erase = new EraseMode(this);
             keyboard = new KeyboardMode(this);
             selection = new Selection();
-            selectLasso = new SelectOutlineMode(this, selection);
+            selectOutline = new SelectOutlineMode(this, selection);
             selectRect = new SelectRectMode(this, selection);
             selectWand = new SelectWandMode(this, selection);
             pan = new PanMode(this);
@@ -1312,7 +1312,7 @@ namespace ASECII {
                         move = new MoveMode(this, selection, sprite.layers[currentLayer]);
                     }
                 } else if(info.IsKeyPressed(O)) {
-                    SetMode(Mode.SelectLasso);
+                    SetMode(Mode.SelectOutline);
                 } else if (info.IsKeyPressed(S) && !info.IsKeyDown(LeftControl)) {
                     SetMode(Mode.SelectRect);
                 } else if (info.IsKeyPressed(T)) {
@@ -1386,9 +1386,9 @@ namespace ASECII {
                 case Mode.Erase:
                     erase.ProcessMouse(state, IsMouseOver);
                     break;
-                case Mode.SelectLasso:
-                    selectLasso ??= new SelectOutlineMode(this, selection);
-                    selectLasso.ProcessMouse(state, ctrl, shift, alt);
+                case Mode.SelectOutline:
+                    selectOutline ??= new SelectOutlineMode(this, selection);
+                    selectOutline.ProcessMouse(state, ctrl, shift, alt);
                     break;
                 case Mode.SelectRect:
                     selectRect.ProcessMouse(state, ctrl, shift, alt);
