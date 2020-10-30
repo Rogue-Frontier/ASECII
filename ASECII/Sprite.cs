@@ -221,41 +221,54 @@ namespace ASECII {
             return affected;
         }
 
-        public HashSet<Point> GetBoundedFill((int, int) start, HashSet<(int, int)> bounds, Point origin, Point end) {
-            HashSet<(int, int)> visited = new HashSet<(int, int)>();
+        //https://www.cs.uic.edu/~jbell/CourseNotes/ComputerGraphics/PolygonFilling.html
+        //http://www.eecs.umich.edu/courses/eecs380/HANDOUTS/PROJ2/InsidePoly.html
+        public HashSet<Point> GetBoundedFill(HashSet<(int x, int y)> bounds) {
             HashSet<Point> affected = new HashSet<Point>();
-            Queue<(int, int)> next = new Queue<(int, int)>();
 
-            next.Enqueue(start);
-            while (next.Any()) {
-                (int x, int y) = next.Dequeue();
+            var lines = bounds.GroupBy(p => p.y)
+                .ToDictionary(l => l.Key,
+                              l => l.OrderBy(p => p.x).ToList());
+            foreach((var y, var points) in lines) {
+                
+                for (int i = 0; i < points.Count - 1; i++) {
 
-                {
-                    var p = (x, y);
-
-                    if (bounds.Contains(p)) {
+                    var left = points[i];
+                    var right = points[i + 1];
+                    if(left.x + 1 == right.x) {
                         continue;
                     }
-
-                    affected.Add(p);
+                    
+                    for(int x = left.x + 1; x < right.x; x++) {
+                        affected.Add(new Point(x, y));
+                    }
+                    i++;
                 }
-
-                foreach ((int x, int y) p in new List<(int, int)>() {
-                                (x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1) }
-                    ) {
-
-                    if (visited.Contains(p)) {
-                        continue;
+                /*
+                for (int i = 0; i < points.Count - 1; i += 2) {
+                    var left = points[i];
+                    var right = points[i + 1];
+                    for (int x = left.x + 1; x < right.x; x++) {
+                        affected.Add(new Point(x, y));
                     }
-
-                    visited.Add(p);
-
-                    if (p.x < origin.X || p.y < origin.Y || p.x > end.X || p.y > end.Y) {
-                        continue;
+                }
+                */
+            }
+            /*
+            lines = bounds.GroupBy(p => p.x)
+                .ToDictionary(l => l.Key,
+                              l => l.OrderBy(p => p.y).ToList());
+            foreach ((var x, var points) in lines) {
+                for (int i = 0; i < points.Count - 1; i += 2) {
+                    var lower = points[i];
+                    var upper = points[i + 1];
+                    for (int y = lower.y + 1; y < upper.y; y++) {
+                        affected.Add(new Point(x, y));
                     }
-                    next.Enqueue(p);
                 }
             }
+            */
+
             return affected;
         }
 

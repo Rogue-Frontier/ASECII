@@ -2080,6 +2080,7 @@ namespace ASECII {
                         CloseLoop();
                     } else if(outline.Any()) {
                         //For instance, if we release Alt 
+                        UpdateOutline();
                         CloseLoop();
                     }
                     prevLeft = state.Mouse.LeftButtonDown;
@@ -2106,7 +2107,7 @@ namespace ASECII {
                     }
                     center /= outline.Count;
 
-                    var affected = model.sprite.layers[model.currentLayer].GetBoundedFill(center, outline.Select(p => (p.X, p.Y)).ToHashSet(), model.sprite.origin, model.sprite.end);
+                    var affected = model.sprite.layers[model.currentLayer].GetBoundedFill(outline.Select(p => (p.X, p.Y)).ToHashSet());
                     if (shift) {
                         selection.UsePointsOnly();
                         selection.points.ExceptWith(outline);
