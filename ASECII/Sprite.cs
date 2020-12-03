@@ -19,10 +19,9 @@ namespace ASECII {
             layers = new List<Layer>();
             preview = new Dictionary<(int, int), TileValue>();
         }
+        public bool InRect(Point pos) => pos.X >= origin.X && pos.Y >= origin.Y && pos.X <= end.X && pos.Y <= end.Y;
         public void UpdatePreview() {
             preview = new Dictionary<(int, int), TileValue>();
-
-            int left = 0, top = 0, right = 0, bottom = 0;
             foreach(var layer in layers) {
                 if (!layer.visible) {
                     continue;
@@ -38,7 +37,7 @@ namespace ASECII {
                 if (layer.applyForeground) {
                     modifier += (t, current) => {
                         if (t.Foreground.A != 0) {
-                            current.Foreground = t.Foreground;
+                            current.Foreground = t.Foreground.Blend(current.Foreground);
                         }
                     };
                 }
@@ -55,23 +54,19 @@ namespace ASECII {
 
                 foreach(var (point, tile) in layer.cells) {
                     var (x, y) = point + layer.pos;
-
-                    left = Math.Min(left, x);
-                    right = Math.Max(right, x);
-                    top = Math.Min(top, x);
-                    bottom = Math.Max(bottom, x);
-
                     TileValue t = new TileValue(tile.Foreground, tile.Background, tile.Glyph);
-
                     if (!preview.TryGetValue((x, y), out var current)) {
                         current = preview[(x, y)] = new TileValue(Color.Transparent, Color.Transparent, 0);
                     }
-
                     modifier?.Invoke(t, current);
                 }
             }
-            origin = new Point(left, top);
-            end = new Point(right, bottom);
+            if (preview.Any()) {
+                origin = new Point(preview.Keys.Min(k => k.Item1), preview.Keys.Min(k => k.Item2));
+                end = new Point(preview.Keys.Max(k => k.Item1), preview.Keys.Max(k => k.Item2));
+            } else {
+                origin = end = new Point(0, 0);
+            }
         }
     }
     public class Layer {

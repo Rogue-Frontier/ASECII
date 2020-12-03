@@ -161,6 +161,8 @@ namespace ASECII {
             int i = 2;
             if (string.IsNullOrWhiteSpace(filepath)) {
                 filepath = Environment.CurrentDirectory;
+            } else {
+                filepath = Path.GetFullPath(filepath);
             }
             if (Directory.Exists(filepath)) {
 

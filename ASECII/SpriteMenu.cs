@@ -19,6 +19,7 @@ using static SadConsole.Input.Keys;
 using Microsoft.Xna.Framework.Graphics;
 using Console = SadConsole.Console;
 using SadConsole.Renderers;
+using Label = ArchConsole.Label;
 
 namespace ASECII {
     class EditorMain : SadConsole.Console {
@@ -67,8 +68,46 @@ namespace ASECII {
             CellButton foregroundAddButton = null, backgroundAddButton = null;
             CellButton foregroundRemoveButton = null, backgroundRemoveButton = null;
 
-            LabelButton colorModeButton = null;
+            LabelButton infiniteButton = null;
+            TextField widthField = null, heightField = null;
+            infiniteButton = new LabelButton(model.infinite ? "Infinite" : "Finite", () => {
+                model.infinite = !model.infinite;
+                infiniteButton.text = model.infinite ? "Infinite" : "Finite";
+            }) { Position = new Point(x, y) };
+            controlsMenu.Children.Add(infiniteButton);
+            y++;
 
+            widthField = new TextField(5) {
+                text = model.width.ToString(),
+                CharFilter = c => char.IsNumber(c),
+                TextChanged = f => {
+                    f.text.TrimStart('0');
+                    if (f.text.Length == 0) {
+                        f.text = "1";
+                    }
+                    model.width = int.Parse(f.text);
+                },
+                Position = new Point(x, y)
+            };
+            heightField = new TextField(6) {
+                text = model.height.ToString(),
+                CharFilter = c => char.IsNumber(c),
+                TextChanged = f => {
+                    f.text.TrimStart('0');
+                    if (f.text.Length == 0) {
+                        f.text = "1";
+                    }
+
+                    model.height = int.Parse(f.text);
+                },
+                Position = new Point(x + 8, y)
+            };
+            controlsMenu.Children.Add(widthField);
+            controlsMenu.Children.Add(heightField);
+
+            y++;
+
+            LabelButton colorModeButton = null;
             colorModeButton = new LabelButton((model.colorMode switch
             {
                 ColorMode.RGB => "Mode: RGB",
@@ -76,6 +115,9 @@ namespace ASECII {
                 ColorMode.Notepad => "Mode: Notepad",
                 _ => "Color Mode"
             }), ChangeColorMode) { Position = new Point(0, y) };
+            controlsMenu.Children.Add(colorModeButton);
+
+
             y++;
             void ChangeColorMode() {
                 model.colorMode = (ColorMode) ((int)(model.colorMode + 1) % Enum.GetValues(typeof(ColorMode)).Length);
@@ -100,6 +142,8 @@ namespace ASECII {
                 FocusOnMouseClick = true,
                 UseMouse = true
             };
+            controlsMenu.Children.Add(tileMenu);
+
 
             y += 8;
 
@@ -115,6 +159,7 @@ namespace ASECII {
                 FocusOnMouseClick = true,
                 UseMouse = true
             };
+            controlsMenu.Children.Add(tileButton);
 
             /*
             tileButton = new ActiveColorButton("Add Tile", () => {
@@ -143,6 +188,7 @@ namespace ASECII {
                 FocusOnMouseClick = true,
                 UseMouse = true
             };
+            controlsMenu.Children.Add(glyphMenu);
 
             y += 16;
 
@@ -473,6 +519,8 @@ namespace ASECII {
                 FocusOnMouseClick = true,
                 UseMouse = true
             };
+            controlsMenu.Children.Add(layerMenu);
+
             y += 16;
 
             var layerAddButton = new LabelButton("Add Layer", () => {
@@ -485,6 +533,8 @@ namespace ASECII {
                 FocusOnMouseClick = true,
                 UseMouse = true
             };
+            controlsMenu.Children.Add(layerAddButton);
+
             y++;
 
             var layerCutButton = new ActiveLabelButton("Cut to Layer", () => model.selection.Exists, () => {
@@ -495,6 +545,7 @@ namespace ASECII {
                 FocusOnMouseClick = true,
                 UseMouse = true
             };
+            controlsMenu.Children.Add(layerCutButton);
 
             model.selection.selectionChanged = layerCutButton.UpdateActive;
             
@@ -517,15 +568,6 @@ namespace ASECII {
             layerCutButton.UpdateActive();
 
             UpdateChannels();
-
-            controlsMenu.Children.Add(colorModeButton);
-            controlsMenu.Children.Add(tileMenu);
-            controlsMenu.Children.Add(tileButton);
-            controlsMenu.Children.Add(glyphMenu);
-
-            controlsMenu.Children.Add(layerMenu);
-            controlsMenu.Children.Add(layerAddButton);
-            controlsMenu.Children.Add(layerCutButton);
 
         }
         public void InitUI() {
@@ -616,6 +658,8 @@ namespace ASECII {
             model.sprite.UpdatePreview();
             var center = new Point(hx, hy);
 
+            Color shade = Color.Black.SetAlpha(128);
+
             if(model.infinite) {
                 for (int x = -hx; x < hx + 1; x++) {
                     for (int y = -hy; y < hy + 1; y++) {
@@ -633,7 +677,11 @@ namespace ASECII {
 
                             this.SetCellAppearance(ax, ay, cg);
                         } else {
-                            this.SetCellAppearance(ax, ay, new ColoredGlyph(Color.Transparent, back));
+                            if (model.sprite.InRect(pos)) {
+                                this.SetCellAppearance(ax, ay, new ColoredGlyph(Color.Transparent, back));
+                            } else {
+                                this.SetCellAppearance(ax, ay, new ColoredGlyph(Color.Transparent, shade.Blend(back)));
+                            }
                         }
                     }
                 }
@@ -673,11 +721,6 @@ namespace ASECII {
                 switch (model.mode) {
                     case Mode.Brush:
                         if (model.ticksSelect % 30 < 15) {
-                            /*
-                            if (model.selectRect.GetAdjustedRect(out Rectangle r)) {
-                                DrawRect(r);
-                            }
-                            */
                             DrawSelection();
                         }
                         if ((model.ticks % 30) < 15) {
@@ -690,14 +733,14 @@ namespace ASECII {
                         if ((model.ticks % 15) < 7) {
                             var cell = model.brush.cell;
                             if (model.line.start.HasValue) {
-                                var start = model.line.start.Value;
-                                var end = model.line.end;
+                                var start = model.line.start.Value + camera;
+                                var end = model.line.end + camera;
                                 if (start == end) {
                                     this.SetCellAppearance(start.X, start.Y, cell);
                                 } else {
                                     foreach(var p in model.line.GetPoints()) {
-                                        (var x, var y) = p;
-                                        this.SetCellAppearance(x, y - 1, cell);
+                                        (var x, var y) = p - camera;
+                                        this.SetCellAppearance(x, y, cell);
                                     }
                                 }
                             } else {
@@ -708,11 +751,6 @@ namespace ASECII {
                         break;
                     case Mode.Erase:
                         if (model.ticksSelect % 30 < 15) {
-                            /*
-                            if (model.selectRect.GetAdjustedRect(out Rectangle r)) {
-                                DrawRect(r);
-                            }
-                            */
                             DrawSelection();
                         }
                         if ((model.ticks % 30) < 15) {
@@ -724,17 +762,11 @@ namespace ASECII {
                     case Mode.Keyboard:
                         var c = model.brush.cell;
                         if(model.ticksSelect%30 < 15) {
-                            /*
-                            if (model.selectRect.GetAdjustedRect(out Rectangle r)) {
-                                DrawRect(r);
-                            }
-                            */
                             DrawSelection();
                         }
                         if (model.ticks % 30 < 15) {
                             var p = (model.keyboard.keyCursor ?? model.cursor) - camera;
                             this.SetCellAppearance(p.X, p.Y, new ColoredGlyph(c.Foreground, c.Background, '_'));
-                            //SetCellAppearance(hx - model.keyboard.margin.X + model.camera.X - 1, hy - model.keyboard.keyCursor.Y + model.camera.Y, new Cell(c.Foreground, c.Background, '>'));
                         }
                         break;
                     case Mode.SelectRect: {
@@ -748,14 +780,21 @@ namespace ASECII {
 
 
                             if (model.ticksSelect % 60 < 30) {
-                                DrawSelection();
-                                if (GetRectDisplay(out Rectangle r)) {
+                                if(model.selectRect.alt && GetEllipseDisplay(out Ellipse e)) {
+                                    y += 1;
+                                    this.Print(x, y, new ColoredString($"{e.Width,4} {e.Height,4}", f, b));
+
+                                    DrawSelectionWith(e.Positions());
+                                } else if (GetRectDisplay(out Rectangle r)) {
                                     y += 1;
                                     this.Print(x, y, new ColoredString($"{r.Width,4} {r.Height,4}", f, b));
 
+                                    DrawSelection();
                                     DrawRect(r);
                                 } else {
                                     var p = model.cursorScreen;
+
+                                    DrawSelection();
                                     DrawBox(p.X, p.Y, new BoxGlyph { n = Line.Single, e = Line.Single, s = Line.Single, w = Line.Single });
                                 }
                             } else if (GetRectDisplay(out Rectangle r)) {
@@ -764,7 +803,8 @@ namespace ASECII {
                             }
 
                             bool GetRectDisplay(out Rectangle r) => model.selectRect.GetAdjustedRect(out r) ||
-                                (r = model.selection.rects.FirstOrDefault(r => r.Contains(model.cursor))) != Rectangle.Empty;
+                                !((r = model.selection.rects.FirstOrDefault(r => r.Contains(model.cursor))).IsEmpty);
+                            bool GetEllipseDisplay(out Ellipse e) => model.selectRect.GetAdjustedEllipse(out e);
                             break;
                         }
                     case Mode.SelectOutline: {
@@ -1117,6 +1157,8 @@ namespace ASECII {
 
         public LinkedList<Edit> Undo;
         public LinkedList<Edit> Redo;
+
+        [JsonIgnore]
         public Action historyChanged;
 
         public string filepath;
@@ -1695,7 +1737,7 @@ namespace ASECII {
                 return;
             }
             //Store all of our placements in a compound action
-            if (model.Undo.Last() == placement) {
+            if (model.Undo.Any() && model.Undo.Last() == placement && placement.layer == layer) {
                 placement.Append(e);
                 e.Do();
             } else {
@@ -1735,6 +1777,11 @@ namespace ASECII {
                         } else {
                             affected = layer.GetFloodFill(start, source, model.sprite.origin, model.sprite.end);
                         }
+                    }
+
+                    if (model.selection.Exists) {
+                        var s = model.selection.GetAll();
+                        affected.IntersectWith(s);
                     }
 
                     if (affected.Any()) {
@@ -2153,7 +2200,8 @@ namespace ASECII {
         public Selection selection;
         public Point? start;
         public Point end;
-        public Rectangle? rect;
+        public bool alt;
+
         bool prevLeft;
 
         public SelectRectMode(SpriteModel model, Selection selection) {
@@ -2163,60 +2211,93 @@ namespace ASECII {
         public void ProcessMouse(MouseScreenObjectState state, bool ctrl, bool shift, bool alt) {
             if(state.IsOnScreenObject) {
                 if (state.Mouse.LeftButtonDown) {
-
+                    this.alt = alt;
                     if (prevLeft) {
                         if (end != model.cursor) {
                             end = model.cursor;
-
-                            if (alt) {
-                                var offset = end - start.Value;
-                                var size = Math.MinMagnitude(offset.X, offset.Y);
-                                end = start.Value + new Point(Math.Sign(offset.X), Math.Sign(offset.Y)) * size;
-                            }
-
-                            int leftX = Math.Min(start.Value.X, end.X);
-                            int width = Math.Max(start.Value.X, end.X) - leftX + 1;
-                            int topY = Math.Min(start.Value.Y, end.Y);
-                            int height = Math.Max(start.Value.Y, end.Y) - topY + 1;
-                            rect = new Rectangle(leftX, topY, width, height);
-
-                            //var t = model.ticks % 30;
-                            //model.ticksSelect = t < 15 ? t - 15 : t - 30;
                             model.ticksSelect = -15;
                         }
                     } else {
-
                         start = model.cursor;
-                        rect = new Rectangle(start.Value, new Point(0, 0));
+                        end = model.cursor;
 
                         if(!ctrl && !shift) {
                             selection.Clear();
                         }
                     }
                 } else if (prevLeft) {
-                    if (start != end) {
+                    if (GetRect(out var r)) {
                         if(shift) {
                             selection.UsePointsOnly();
-                            selection.points.ExceptWith(rect.Value.Positions());
+                            selection.points.ExceptWith(r.Positions());
                         } else {
-                            selection.rects.Add(rect.Value);
+                            selection.rects.Add(r);
                         }
 
                         selection.selectionChanged?.Invoke();
                     }
-                    rect = null;
                 }
                 prevLeft = state.Mouse.LeftButtonDown;
             }
             
         }
-        public bool GetAdjustedRect(out Rectangle r) {
-            if(rect.HasValue) {
-                r = rect.Value.Translate(new Point() - model.camera);
+
+        private bool GetDimensions(out int left, out int top, out int width, out int height) {
+            if (start.HasValue && start != this.end) {
+                var end = this.end;
+                if (alt) {
+                    var offset = end - start.Value;
+
+                    var size = Math.MinMagnitude(offset.X, offset.Y);
+                    end = start.Value + new Point(Math.Sign(offset.X), Math.Sign(offset.Y)) * size;
+                }
+
+                left = Math.Min(start.Value.X, end.X);
+                width = Math.Max(start.Value.X, end.X) - left + 1;
+                top = Math.Min(start.Value.Y, end.Y);
+                height = Math.Max(start.Value.Y, end.Y) - top + 1;
+                return true;
+            } else {
+                left = 0;
+                width = 0;
+                top = 0;
+                height = 0;
+                return false;
+            }
+        }
+        private bool GetEllipse(out Ellipse e) {
+            if (GetDimensions(out int left, out int top, out int width, out int height)) {
+                e = new Ellipse(left, top, width, height);
+                return true;
+            } else {
+                e = Ellipse.Empty;
+                return false;
+            }
+        }
+        public bool GetAdjustedEllipse(out Ellipse e) {
+            if (GetEllipse(out e)) {
+                e = e.Translate(new Point() - model.camera);
+                return true;
+            } else {
+                return false;
+            }
+        }
+        private bool GetRect(out Rectangle r) {
+            if(GetDimensions(out int left, out int top, out int width, out int height)) {
+                r = new Rectangle(left, top, width, height);
+                return true;
             } else {
                 r = Rectangle.Empty;
+                return false;
             }
-            return rect.HasValue;
+        }
+        public bool GetAdjustedRect(out Rectangle r) {
+            if(GetRect(out r)) {
+                r = r.Translate(new Point() - model.camera);
+                return true;
+            } else {
+                return false;
+            }
         }
     }
     public class SelectWandMode {
