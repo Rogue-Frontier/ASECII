@@ -1899,6 +1899,7 @@ namespace ASECII {
     }
     [JsonObject(MemberSerialization.Fields)]
     public class EraseMode {
+        public MultiEdit placement;
         public SpriteModel model;
         public MouseWatch mouse;
         public EraseMode(SpriteModel model) {
@@ -1931,8 +1932,21 @@ namespace ASECII {
         }
         void Place(Point p) {
             var layer = model.sprite.layers[model.currentLayer];
-            SingleEdit action = new SingleEdit(p, layer, null);
-            model.AddAction(action);
+            SingleEdit e = new SingleEdit(p, layer, null);
+
+
+            if (e.IsRedundant()) {
+                return;
+            }
+            //Store all of our placements in a compound action
+            if (model.Undo.Any() && model.Undo.Last() == placement && placement.layer == layer) {
+                placement.Append(e);
+                e.Do();
+            } else {
+                placement = new MultiEdit(layer);
+                placement.Append(e);
+                model.AddAction(placement);
+            }
         }
     }
     public class KeyboardMode {

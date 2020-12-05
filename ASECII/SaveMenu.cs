@@ -97,7 +97,7 @@ namespace ASECII {
             DefaultBackground = Color.Black;
 
 
-            this.recentFiles = File.Exists(RECENTFILES) ? ASECIILoader.DeserializeObject<HashSet<string>>(File.ReadAllText(RECENTFILES)) : new HashSet<string>();
+            this.recentFiles = File.Exists(RECENTFILES) ? ASECIILoader.DeserializeObject<HashSet<string>>(File.ReadAllText(RECENTFILES)).Where(f => File.Exists(f)).ToHashSet() : new HashSet<string>();
             this.preloaded = new Dictionary<string, SpriteModel>();
             this.recentListing = new List<LabelButton>();
             int n = 3;
@@ -106,7 +106,7 @@ namespace ASECII {
                 folderListingX = 32;
                 foreach (var f in recentFiles) {
                     var p = Path.GetFileName(f);
-                    var b = new LabelButton(p, Load) {
+                    var b = new LabelButton(p, Load, () => textbox.text = f) {
                         Position = new Point(4, n),
                     };
 
@@ -120,7 +120,7 @@ namespace ASECII {
 
                     void Load() {
                         mode.Enter(this, f);
-                        AddRecentFile(f);
+                        //AddRecentFile(f);
                     }
                 }
             } else {
