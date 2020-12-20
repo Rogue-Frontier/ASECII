@@ -175,7 +175,7 @@ namespace ASECII {
                 ShowDirectories(Directory.GetDirectories(filepath).Where(p => p.StartsWith(filepath)));
                 ShowFiles(Directory.GetFiles(filepath).Where(p => p.StartsWith(filepath)));
             } else {
-         var parent = Directory.GetParent(filepath).FullName;
+                var parent = Directory.GetParent(filepath)?.FullName;
                 if (Directory.Exists(parent)) {
                     i++;
                     var b = new LabelButton("..", () => textbox.text = parent) {
