@@ -26,7 +26,7 @@ namespace ASECII {
                 if (!layer.visible) {
                     continue;
                 }
-                Action<TileValue, TileValue> modifier = null;
+                Action<TileRef, TileValue> modifier = null;
                 if(layer.applyBackground) {
                     modifier += (t, current) => {
                         if (t.Background.A != 0) {
@@ -54,10 +54,11 @@ namespace ASECII {
 
                 foreach(var (point, tile) in layer.cells) {
                     var (x, y) = point + layer.pos;
-                    TileValue t = new TileValue(tile.Foreground, tile.Background, tile.Glyph);
                     if (!preview.TryGetValue((x, y), out var current)) {
                         current = preview[(x, y)] = new TileValue(Color.Transparent, Color.Transparent, 0);
                     }
+                    //TileValue t = new TileValue(tile.Foreground, tile.Background, tile.Glyph);
+                    var t = tile;
                     modifier?.Invoke(t, current);
                 }
             }
@@ -68,6 +69,50 @@ namespace ASECII {
                 origin = end = new Point(0, 0);
             }
         }
+
+        public void GetIntermediate((int, int) pos, int topLayer) {
+            TileValue current = new TileValue(Color.Transparent, Color.Transparent, 0);
+            foreach (var layer in layers.Take(topLayer)) {
+                if (!layer.visible) {
+                    continue;
+                }
+                Action<TileRef, TileValue> modifier = null;
+                if (layer.applyBackground) {
+                    modifier += (t, current) => {
+                        if (t.Background.A != 0) {
+                            current.Background = t.Background.Blend(current.Background);
+                        }
+                    };
+                }
+                if (layer.applyForeground) {
+                    modifier += (t, current) => {
+                        if (t.Foreground.A != 0) {
+                            current.Foreground = t.Foreground.Blend(current.Foreground);
+                        }
+                    };
+                }
+                if (layer.applyGlyph) {
+                    modifier += (t, current) => {
+                        if (t.Glyph != 0) {
+                            current.Glyph = t.Glyph;
+                        }
+                    };
+                }
+                if (modifier == null) {
+                    continue;
+                }
+                if(layer.cells.TryGetValue(pos - layer.pos, out var t)) {
+                    modifier?.Invoke(t, current);
+                }
+            }
+            if (preview.Any()) {
+                origin = new Point(preview.Keys.Min(k => k.Item1), preview.Keys.Min(k => k.Item2));
+                end = new Point(preview.Keys.Max(k => k.Item1), preview.Keys.Max(k => k.Item2));
+            } else {
+                origin = end = new Point(0, 0);
+            }
+        }
+
     }
     public class Layer {
         public Point pos;

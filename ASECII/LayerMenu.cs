@@ -32,8 +32,8 @@ namespace ASECII {
                         layers.RemoveAt(index);
                         layers.Insert(index + 1, l);
 
-                        if(model.currentLayer == index) {
-                            model.currentLayer++;
+                        if(model.currentLayerIndex == index) {
+                            model.currentLayerIndex++;
                         }
 
                         UpdateListing();
@@ -43,8 +43,8 @@ namespace ASECII {
 
                 this.Children.Add(new CellButton(() => index > 0,
                         () => {
-                            if (model.currentLayer == index) {
-                                model.currentLayer--;
+                            if (model.currentLayerIndex == index) {
+                                model.currentLayerIndex--;
                             }
 
                             layers.RemoveAt(index);
@@ -73,8 +73,8 @@ namespace ASECII {
                 });
 
                 nameButton = new ColorButton(GetLabel(),
-                    () => model.currentLayer == index ? Color.Yellow : Color.White,
-                    () => model.currentLayer = index) {
+                    () => model.currentLayerIndex == index ? Color.Yellow : Color.White,
+                    () => model.currentLayerIndex = index) {
                     Position = new Point(4, index)
                 };
                 this.Children.Add(nameButton);
@@ -85,8 +85,8 @@ namespace ASECII {
                         below.Flatten(l);
                         layers.RemoveAt(index);
 
-                        if (model.currentLayer == index) {
-                            model.currentLayer--;
+                        if (model.currentLayerIndex == index) {
+                            model.currentLayerIndex--;
                         }
 
                         UpdateListing();
@@ -98,8 +98,8 @@ namespace ASECII {
                         () => {
                             layers.RemoveAt(index);
 
-                            if (model.currentLayer == index && index > 0) {
-                                model.currentLayer--;
+                            if (model.currentLayerIndex == index && index > 0) {
+                                model.currentLayerIndex--;
                             }
 
                             UpdateListing();
