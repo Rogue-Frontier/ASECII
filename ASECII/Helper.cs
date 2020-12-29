@@ -43,6 +43,14 @@ namespace ASECII {
                 (c.G * c.A) / 255 + (byte) (back.G * (1 - c.A / 255f)),
                 (c.B * c.A) / 255 + (byte) (back.B * (1 - c.A / 255f))
                 );
+        public static float GetSat(this Color c) {
+
+            int max = Math.Max(c.R, Math.Max(c.G, c.B));
+            int min = Math.Min(c.R, Math.Min(c.G, c.B));
+
+            return (max == 0) ? 0 : 1f - (1f * min / max);
+        }
+        public static float GetValue(this Color c) => Math.Max(c.R, Math.Max(c.G, c.B)) / 255f;
         public static Color HsvToRgb(double h, double S, double V) {
             int r, g, b;
 

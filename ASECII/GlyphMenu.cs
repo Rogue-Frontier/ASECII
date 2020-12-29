@@ -52,15 +52,21 @@ namespace ASECII {
             }
 
 
+            var brushX = spriteModel.brush.glyph % Width;
+            var brushY = spriteModel.brush.glyph / Width;
+
             for (int i = 0; i < 256; i++) {
                 string s = ((char)i).ToString();
-                this.Print(i % Width, i / Width, s, f, b);
-            }
-            var x = spriteModel.brush.glyph % Width;
-            var y = spriteModel.brush.glyph / Width;
-            var c = this.GetCellAppearance(x, y);
-            this.SetCellAppearance(x, y, new ColoredGlyph(c.Background, c.Foreground, c.Glyph));
 
+                int x = i % Width;
+                int y = i / Width;
+                var cs = ((x == brushX) == (y == brushY)) ? new ColoredString(s, f, b) : new ColoredString(s, b, f);
+                this.Print(x, y, cs);
+            }
+            /*
+            var c = this.GetCellAppearance(brushX, brushY);
+            this.SetCellAppearance(brushX, brushY, new ColoredGlyph(c.Background, c.Foreground, c.Glyph));
+            */
 
             base.Render(timeElapsed);
         }

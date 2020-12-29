@@ -192,7 +192,10 @@ namespace ASECII {
 
             y += 16;
 
-            
+            Console colorMenu = null;
+            int yColorMenu = y;
+            int yColor = 0;
+
             void AddPaletteMenu() {
                 var paletteMenu = new PaletteMenu(16, 4, model, paletteModel, () => {
                     tileModel.UpdateIndexes(model);
@@ -202,13 +205,13 @@ namespace ASECII {
 
                     UpdateChannels();
                 }) {
-                    Position = new Point(0, y),
+                    Position = new Point(0, yColor),
                     FocusOnMouseClick = true,
                     UseMouse = true
                 };
-                controlsMenu.Children.Add(paletteMenu);
+                colorMenu.Children.Add(paletteMenu);
 
-                y += 4;
+                yColor += 4;
             }
 
             void AddForegroundLabel() {
@@ -220,12 +223,12 @@ namespace ASECII {
 
                     PaletteChanged();
                 }, '-') {
-                    Position = new Point(0, y),
+                    Position = new Point(0, yColor),
                     FocusOnMouseClick = true,
                     UseMouse = true
                 };
                 foregroundLabel = new ColorLabel(14, () => model.brush.foreground) {
-                    Position = new Point(1, y)
+                    Position = new Point(1, yColor)
                 };
                 foregroundAddButton = new CellButton(() => {
                     return paletteModel.foregroundIndex == null;
@@ -235,18 +238,18 @@ namespace ASECII {
 
                     PaletteChanged();
                 }, '+') {
-                    Position = new Point(15, y),
+                    Position = new Point(15, yColor),
                     FocusOnMouseClick = true,
                     UseMouse = true
                 };
                 UpdateColorButtons += foregroundRemoveButton.UpdateActive;
                 UpdateColorButtons += foregroundAddButton.UpdateActive;
 
-                controlsMenu.Children.Add(foregroundLabel);
-                controlsMenu.Children.Add(foregroundAddButton);
-                controlsMenu.Children.Add(foregroundRemoveButton);
+                colorMenu.Children.Add(foregroundLabel);
+                colorMenu.Children.Add(foregroundAddButton);
+                colorMenu.Children.Add(foregroundRemoveButton);
 
-                y += 2;
+                yColor += 2;
             }
 
             void AddBackgroundLabel() {
@@ -257,12 +260,12 @@ namespace ASECII {
                     paletteModel.UpdateIndexes(model);
                     PaletteChanged();
                 }, '-') {
-                    Position = new Point(0, y),
+                    Position = new Point(0, yColor),
                     FocusOnMouseClick = true,
                     UseMouse = true
                 };
                 backgroundLabel = new ColorLabel(14, () => model.brush.background) {
-                    Position = new Point(1, y)
+                    Position = new Point(1, yColor)
                 };
                 backgroundAddButton = new CellButton(() => {
                     return paletteModel.backgroundIndex == null;
@@ -271,133 +274,269 @@ namespace ASECII {
                     paletteModel.UpdateIndexes(model);
                     PaletteChanged();
                 }, '+') {
-                    Position = new Point(15, y),
+                    Position = new Point(15, yColor),
                     FocusOnMouseClick = true,
                     UseMouse = true
                 };
                 UpdateColorButtons += backgroundRemoveButton.UpdateActive;
                 UpdateColorButtons += backgroundAddButton.UpdateActive;
 
-                controlsMenu.Children.Add(backgroundLabel);
-                controlsMenu.Children.Add(backgroundAddButton);
-                controlsMenu.Children.Add(backgroundRemoveButton);
+                colorMenu.Children.Add(backgroundLabel);
+                colorMenu.Children.Add(backgroundAddButton);
+                colorMenu.Children.Add(backgroundRemoveButton);
 
-                y += 2;
+                yColor += 2;
 
             }
             switch (model.colorMode) {
                 case ColorMode.RGB: {
-                        ChannelBar foregroundR = null, foregroundG = null, foregroundB = null, foregroundA = null,
-                backgroundR = null, backgroundG = null, backgroundB = null, backgroundA = null;
 
-                        AddPaletteMenu();
-                        
-                        AddForegroundLabel();
+                        bool rgb = true;
 
-                        foregroundR = new ChannelBar(16, Channel.R, () => {
-                            foregroundR.ModifyColor(ref model.brush.foreground);
-                            ChannelChanged();
-                        }) {
-                            Position = new Point(0, y),
-                            FocusOnMouseClick = true,
-                            UseMouse = true
-                        };
-                        y++;
-                        foregroundG = new ChannelBar(16, Channel.G, () => {
-                            foregroundG.ModifyColor(ref model.brush.foreground);
-                            ChannelChanged();
-                        }) {
-                            Position = new Point(0, y),
-                            FocusOnMouseClick = true,
-                            UseMouse = true
-                        };
-                        y++;
-                        foregroundB = new ChannelBar(16, Channel.B, () => {
-                            foregroundB.ModifyColor(ref model.brush.foreground);
-                            ChannelChanged();
-                        }) {
-                            Position = new Point(0, y),
-                            FocusOnMouseClick = true,
-                            UseMouse = true
-                        };
-                        y++;
-                        foregroundA = new ChannelBar(16, Channel.A, () => {
-                            foregroundA.ModifyColor(ref model.brush.foreground);
-                            ChannelChanged();
-                        }) {
-                            Position = new Point(0, y),
-                            FocusOnMouseClick = true,
-                            UseMouse = true
-                        };
-                        y += 2;
+                        AddRGB();
+                        controlsMenu.Children.Add(colorMenu);
+                        void ChangeBarMode() {
+                            controlsMenu.Children.Remove(colorMenu);
+                            rgb = !rgb;
+                            if (rgb) {
+                                AddRGB();
+                            } else {
+                                AddHSB();
+                            }
+                            UpdateChannels();
+                            controlsMenu.Children.Add(colorMenu);
+                        }
+                        void AddRGB() {
+                            colorMenu = new Console(controlsMenu.Width, 16) { Position = new Point(0, yColorMenu) };
 
-                        AddBackgroundLabel();
-                        backgroundR = new ChannelBar(16, Channel.R, () => {
-                            backgroundR.ModifyColor(ref model.brush.background);
-                            ChannelChanged();
-                        }) {
-                            Position = new Point(0, y),
-                            FocusOnMouseClick = true,
-                            UseMouse = true
-                        };
-                        y++;
-                        backgroundG = new ChannelBar(16, Channel.G, () => {
-                            backgroundG.ModifyColor(ref model.brush.background);
-                            ChannelChanged();
-                        }) {
-                            Position = new Point(0, y),
-                            FocusOnMouseClick = true,
-                            UseMouse = true
-                        };
-                        y++;
-                        backgroundB = new ChannelBar(16, Channel.B, () => {
-                            backgroundB.ModifyColor(ref model.brush.background);
-                            ChannelChanged();
-                        }) {
-                            Position = new Point(0, y),
-                            FocusOnMouseClick = true,
-                            UseMouse = true
-                        };
-                        y++;
-                        backgroundA = new ChannelBar(16, Channel.A, () => {
-                            backgroundA.ModifyColor(ref model.brush.background);
-                            ChannelChanged();
-                        }) {
-                            Position = new Point(0, y),
-                            FocusOnMouseClick = true,
-                            UseMouse = true
-                        };
+                            yColor = 0;
+                            var button = new LabelButton("Color Bars: RGBA", ChangeBarMode) { Position = new Point(0, yColor) };
+                            yColor++;
+                            colorMenu.Children.Add(button);
 
-                        controlsMenu.Children.Add(foregroundR);
-                        controlsMenu.Children.Add(foregroundG);
-                        controlsMenu.Children.Add(foregroundB);
-                        controlsMenu.Children.Add(foregroundA);
+                            ChannelBar foregroundR = null, foregroundG = null, foregroundB = null, foregroundA = null,
+                                        backgroundR = null, backgroundG = null, backgroundB = null, backgroundA = null;
 
-                        controlsMenu.Children.Add(backgroundR);
-                        controlsMenu.Children.Add(backgroundG);
-                        controlsMenu.Children.Add(backgroundB);
-                        controlsMenu.Children.Add(backgroundA);
+                            AddPaletteMenu();
+                            AddForegroundLabel();
+                            foregroundR = new ChannelBar(16, Channel.Red, () => {
+                                foregroundR.ModifyColor(ref model.brush.foreground);
+                                ChannelChanged();
+                            }) {
+                                Position = new Point(0, yColor),
+                                FocusOnMouseClick = true,
+                                UseMouse = true
+                            };
+                            yColor++;
+                            foregroundG = new ChannelBar(16, Channel.Green, () => {
+                                foregroundG.ModifyColor(ref model.brush.foreground);
+                                ChannelChanged();
+                            }) {
+                                Position = new Point(0, yColor),
+                                FocusOnMouseClick = true,
+                                UseMouse = true
+                            };
+                            yColor++;
+                            foregroundB = new ChannelBar(16, Channel.Blue, () => {
+                                foregroundB.ModifyColor(ref model.brush.foreground);
+                                ChannelChanged();
+                            }) {
+                                Position = new Point(0, yColor),
+                                FocusOnMouseClick = true,
+                                UseMouse = true
+                            };
+                            yColor++;
+                            foregroundA = new ChannelBar(16, Channel.Alpha, () => {
+                                foregroundA.ModifyColor(ref model.brush.foreground);
+                                ChannelChanged();
+                            }) {
+                                Position = new Point(0, yColor),
+                                FocusOnMouseClick = true,
+                                UseMouse = true
+                            };
+                            yColor += 2;
 
-                        UpdateChannels = () => {
-                            var f = model.brush.foreground;
-                            var b = model.brush.background;
-                            foregroundR.UpdateColors(f);
-                            foregroundG.UpdateColors(f);
-                            foregroundB.UpdateColors(f);
-                            foregroundA.UpdateColors(f);
+                            AddBackgroundLabel();
+                            backgroundR = new ChannelBar(16, Channel.Red, () => {
+                                backgroundR.ModifyColor(ref model.brush.background);
+                                ChannelChanged();
+                            }) {
+                                Position = new Point(0, yColor),
+                                FocusOnMouseClick = true,
+                                UseMouse = true
+                            };
+                            yColor++;
+                            backgroundG = new ChannelBar(16, Channel.Green, () => {
+                                backgroundG.ModifyColor(ref model.brush.background);
+                                ChannelChanged();
+                            }) {
+                                Position = new Point(0, yColor),
+                                FocusOnMouseClick = true,
+                                UseMouse = true
+                            };
+                            yColor++;
+                            backgroundB = new ChannelBar(16, Channel.Blue, () => {
+                                backgroundB.ModifyColor(ref model.brush.background);
+                                ChannelChanged();
+                            }) {
+                                Position = new Point(0, yColor),
+                                FocusOnMouseClick = true,
+                                UseMouse = true
+                            };
+                            yColor++;
+                            backgroundA = new ChannelBar(16, Channel.Alpha, () => {
+                                backgroundA.ModifyColor(ref model.brush.background);
+                                ChannelChanged();
+                            }) {
+                                Position = new Point(0, yColor),
+                                FocusOnMouseClick = true,
+                                UseMouse = true
+                            };
 
-                            backgroundR.UpdateColors(b);
-                            backgroundG.UpdateColors(b);
-                            backgroundB.UpdateColors(b);
-                            backgroundA.UpdateColors(b);
-                        };
+                            colorMenu.Children.Add(foregroundR);
+                            colorMenu.Children.Add(foregroundG);
+                            colorMenu.Children.Add(foregroundB);
+                            colorMenu.Children.Add(foregroundA);
 
-                        y += 2;
+                            colorMenu.Children.Add(backgroundR);
+                            colorMenu.Children.Add(backgroundG);
+                            colorMenu.Children.Add(backgroundB);
+                            colorMenu.Children.Add(backgroundA);
 
-                        AddPickerMenu();
+                            UpdateChannels = () => {
+                                var f = model.brush.foreground;
+                                var b = model.brush.background;
+                                foregroundR.UpdateColors(f);
+                                foregroundG.UpdateColors(f);
+                                foregroundB.UpdateColors(f);
+                                foregroundA.UpdateColors(f);
+
+                                backgroundR.UpdateColors(b);
+                                backgroundG.UpdateColors(b);
+                                backgroundB.UpdateColors(b);
+                                backgroundA.UpdateColors(b);
+                            };
+                            yColor += 2;
+                            AddPickerMenu();
+                        }
+                        void AddHSB() {
+                            colorMenu = new Console(controlsMenu.Width, 16) { Position = new Point(0, yColorMenu) };
+
+                            yColor = 0;
+                            var button = new LabelButton("Color Bars: HSBA", ChangeBarMode) { Position = new Point(0, yColor) };
+                            yColor++;
+                            colorMenu.Children.Add(button);
+
+                            ChannelBar foregroundH = null, foregroundS = null, foregroundL = null, foregroundA = null,
+                                        backgroundH = null, backgroundS = null, backgroundL = null, backgroundA = null;
+
+                            AddPaletteMenu();
+                            AddForegroundLabel();
+                            foregroundH = new ChannelBar(16, Channel.Hue, () => {
+                                foregroundH.ModifyColor(ref model.brush.foreground);
+                                ChannelChanged();
+                            }) {
+                                Position = new Point(0, yColor),
+                                FocusOnMouseClick = true,
+                                UseMouse = true
+                            };
+                            yColor++;
+                            foregroundS = new ChannelBar(16, Channel.Saturation, () => {
+                                foregroundS.ModifyColor(ref model.brush.foreground);
+                                ChannelChanged();
+                            }) {
+                                Position = new Point(0, yColor),
+                                FocusOnMouseClick = true,
+                                UseMouse = true
+                            };
+                            yColor++;
+                            foregroundL = new ChannelBar(16, Channel.Value, () => {
+                                foregroundL.ModifyColor(ref model.brush.foreground);
+                                ChannelChanged();
+                            }) {
+                                Position = new Point(0, yColor),
+                                FocusOnMouseClick = true,
+                                UseMouse = true
+                            };
+                            yColor++;
+                            foregroundA = new ChannelBar(16, Channel.Alpha, () => {
+                                foregroundA.ModifyColor(ref model.brush.foreground);
+                                ChannelChanged();
+                            }) {
+                                Position = new Point(0, yColor),
+                                FocusOnMouseClick = true,
+                                UseMouse = true
+                            };
+                            yColor += 2;
+
+                            AddBackgroundLabel();
+                            backgroundH = new ChannelBar(16, Channel.Hue, () => {
+                                backgroundH.ModifyColor(ref model.brush.background);
+                                ChannelChanged();
+                            }) {
+                                Position = new Point(0, yColor),
+                                FocusOnMouseClick = true,
+                                UseMouse = true
+                            };
+                            yColor++;
+                            backgroundS = new ChannelBar(16, Channel.Saturation, () => {
+                                backgroundS.ModifyColor(ref model.brush.background);
+                                ChannelChanged();
+                            }) {
+                                Position = new Point(0, yColor),
+                                FocusOnMouseClick = true,
+                                UseMouse = true
+                            };
+                            yColor++;
+                            backgroundL = new ChannelBar(16, Channel.Value, () => {
+                                backgroundL.ModifyColor(ref model.brush.background);
+                                ChannelChanged();
+                            }) {
+                                Position = new Point(0, yColor),
+                                FocusOnMouseClick = true,
+                                UseMouse = true
+                            };
+                            yColor++;
+                            backgroundA = new ChannelBar(16, Channel.Alpha, () => {
+                                backgroundA.ModifyColor(ref model.brush.background);
+                                ChannelChanged();
+                            }) {
+                                Position = new Point(0, yColor),
+                                FocusOnMouseClick = true,
+                                UseMouse = true
+                            };
+
+                            colorMenu.Children.Add(foregroundH);
+                            colorMenu.Children.Add(foregroundS);
+                            colorMenu.Children.Add(foregroundL);
+                            colorMenu.Children.Add(foregroundA);
+
+                            colorMenu.Children.Add(backgroundH);
+                            colorMenu.Children.Add(backgroundS);
+                            colorMenu.Children.Add(backgroundL);
+                            colorMenu.Children.Add(backgroundA);
+
+                            UpdateChannels = () => {
+                                var f = model.brush.foreground;
+                                var b = model.brush.background;
+                                foregroundH.UpdateColors(f);
+                                foregroundS.UpdateColors(f);
+                                foregroundL.UpdateColors(f);
+                                foregroundA.UpdateColors(f);
+
+                                backgroundH.UpdateColors(b);
+                                backgroundS.UpdateColors(b);
+                                backgroundL.UpdateColors(b);
+                                backgroundA.UpdateColors(b);
+                            };
+                            yColor += 2;
+                            AddPickerMenu();
+                        }
                         break;
                     }
                 case ColorMode.Grayscale: {
+                        colorMenu = new Console(16, 32) { DefaultBackground = Color.AnsiCyan };
+
                         ChannelBar foreground = null, background = null;
                         ChannelBar foregroundA = null, backgroundA = null;
                         AddPaletteMenu();
@@ -412,7 +551,7 @@ namespace ASECII {
                             UseMouse = true
                         };
                         y++;
-                        foregroundA = new ChannelBar(16, Channel.A, () => {
+                        foregroundA = new ChannelBar(16, Channel.Alpha, () => {
                             foregroundA.ModifyColor(ref model.brush.foreground);
                             ChannelChanged();
                         }) {
@@ -432,7 +571,7 @@ namespace ASECII {
                             UseMouse = true
                         };
                         y++;
-                        backgroundA = new ChannelBar(16, Channel.A, () => {
+                        backgroundA = new ChannelBar(16, Channel.Alpha, () => {
                             backgroundA.ModifyColor(ref model.brush.background);
                             ChannelChanged();
                         }) {
@@ -460,9 +599,10 @@ namespace ASECII {
                         y += 2;
                         break;
                     }
-                case ColorMode.Notepad:
-                    y += 1;
-                    break;
+                case ColorMode.Notepad: {
+                        y += 1;
+                        break;
+                    }
             }
 
             void ChannelChanged() {
@@ -496,23 +636,25 @@ namespace ASECII {
 
                     UpdateChannels();
                 }) {
-                    Position = new Point(0, y),
+                    Position = new Point(0, yColor),
                     FocusOnMouseClick = true,
                     UseMouse = true
                 };
-                controlsMenu.Children.Add(pickerMenu);
+                colorMenu.Children.Add(pickerMenu);
 
-                y += 16;
+                yColor += 16;
 
                 var hueBar = new HueBar(16, 1, paletteModel, pickerModel) {
-                    Position = new Point(0, y),
+                    Position = new Point(0, yColor),
                     FocusOnMouseClick = true,
                     UseMouse = true
                 };
-                controlsMenu.Children.Add(hueBar);
+                colorMenu.Children.Add(hueBar);
 
-                y += 2;
+                yColor += 2;
             }
+
+            y = Height - 18;
 
             var layerMenu = new LayerMenu(32, 16, model) {
                 Position = new Point(0, y),
@@ -554,6 +696,9 @@ namespace ASECII {
                 tileButton.UpdateActive();
                 paletteModel.UpdateIndexes(model);
                 PaletteChanged();
+
+                UpdateChannels();
+                UpdateColorButtons();
             };
 
             //No per-color transparency; layer-based only

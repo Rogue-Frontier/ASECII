@@ -13,12 +13,12 @@ namespace ASECII {
         SpriteModel model;
         MouseWatch mouse;
         PickerModel colorPicker;
-        Action brushChanged;
-        public PickerMenu(int width, int height, SpriteModel model, PickerModel colorPicker, Action brushChanged) : base(width, height) {
+        Action colorPicked;
+        public PickerMenu(int width, int height, SpriteModel model, PickerModel colorGrid, Action colorPicked) : base(width, height) {
             this.model = model;
             this.mouse = new MouseWatch();
-            this.colorPicker = colorPicker;
-            this.brushChanged = brushChanged;
+            this.colorPicker = colorGrid;
+            this.colorPicked = colorPicked;
         }
         public override bool ProcessKeyboard(Keyboard info) {
             return base.ProcessKeyboard(info);
@@ -33,12 +33,15 @@ namespace ASECII {
                 if (state.Mouse.LeftButtonDown && mouse.leftPressedOnScreen) {
                     model.brush.foreground = colors[x, y];
                     colorPicker.foregroundPoint = new Point(x, y);
+
+                    colorPicked?.Invoke();
                 }
                 if (state.Mouse.RightButtonDown && mouse.rightPressedOnScreen) {
                     model.brush.background = colors[x, y];
                     colorPicker.backgroundPoint = new Point(x, y);
+
+                    colorPicked?.Invoke();
                 }
-                brushChanged?.Invoke();
             }
             
             return base.ProcessMouse(state);
@@ -101,7 +104,7 @@ namespace ASECII {
         public void UpdateColors() {
             for (int x = 0; x < Width; x++) {
                 for (int y = 0; y < Height; y++) {
-                    var c = Helper.HsvToRgb(hue, 1f * x / Width, 1f * y / Height);
+                    var c = Helper.HsvToRgb(hue, 1f * x / (Width - 1), 1f * y / (Height - 1));
                     colors[x, Height - y - 1] = c;
                 }
             }
@@ -143,6 +146,8 @@ namespace ASECII {
         int index = 0;
         Color[] bar;
 
+        MouseWatch mouse;
+
         public HueBar(int width, int height, PaletteModel paletteModel, PickerModel model) : base(width, height) {
             this.paletteModel = paletteModel;
             this.colorPicker = model;
@@ -150,12 +155,14 @@ namespace ASECII {
             for (int i = 0; i < width; i++) {
                 bar[i] = Helper.HsvToRgb(i * 360d / width, 1.0, 1.0);
             }
+            mouse = new MouseWatch();
         }
 
         public override bool ProcessMouse(MouseScreenObjectState state) {
             var (x, y) = state.SurfaceCellPosition;
             if (state.IsOnScreenObject) {
-                if (state.Mouse.LeftButtonDown) {
+                mouse.Update(state, IsMouseOver);
+                if (state.Mouse.LeftButtonDown && mouse.leftPressedOnScreen) {
                     index = x;
                     colorPicker.hue = index * 360d / bar.Length;
                     colorPicker.UpdateColors();
@@ -178,8 +185,8 @@ namespace ASECII {
     }
 
     enum Channel {
-        R, G, B, A,
-        H, S, L,
+        Red, Green, Blue, Alpha,
+        Hue, Saturation, Value,
         Gray
     }
     class ChannelBar : SadConsole.Console {
@@ -194,37 +201,37 @@ namespace ASECII {
 
         public ChannelBar(int width, Channel channel, Action indexChanged) : base(width, 1) {
             this.channel = channel;
-            bar = new Color[width];
+            bar = new Color[width + 1];
             mouse = new MouseWatch();
             this.indexChanged = indexChanged;
         }
 
-        public void ModifyColor(ref Color c) => c = GetModifier()(c, (byte)(index * 255 / Width));
+        public void ModifyColor(ref Color c) => c = bar[index];
 
         public delegate Color SetChannel(Color c, byte amount);
 
         private SetChannel GetModifier() => channel switch {
-            Channel.R => ColorExtensions.SetRed,
-            Channel.G => ColorExtensions.SetGreen,
-            Channel.B => ColorExtensions.SetBlue,
-            Channel.A => ColorExtensions.SetAlpha,
+            Channel.Red => ColorExtensions.SetRed,
+            Channel.Green => ColorExtensions.SetGreen,
+            Channel.Blue => ColorExtensions.SetBlue,
+            Channel.Alpha => ColorExtensions.SetAlpha,
 
-            Channel.H => (c, b) => c.SetHSL(b / 255f, c.GetSaturation(), c.GetLuma()),
-            Channel.S => (c, b) => c.SetHSL(c.GetHue(), b / 255f, c.GetLuma()),
-            Channel.L => (c, b) => c.SetHSL(c.GetHue(), c.GetSaturation(), b / 255f),
+            Channel.Hue => (c, b) => Helper.HsvToRgb(b * 360d / 255, c.GetSat(), c.GetValue()).SetAlpha(c.A),
+            Channel.Saturation => (c, b) => Helper.HsvToRgb(c.GetHue(), b / 255f, c.GetValue()).SetAlpha(c.A),
+            Channel.Value => (c, b) => Helper.HsvToRgb(c.GetHue(), c.GetSat(), b / 255f).SetAlpha(c.A),
 
             Channel.Gray => (c, b) => new Color(b, b, b, c.A)
         };
         private int GetIndex(Color c) => channel switch
         {
-            Channel.R => c.R,
-            Channel.G => c.G,
-            Channel.B => c.B,
-            Channel.A => c.A,
+            Channel.Red => c.R,
+            Channel.Green => c.G,
+            Channel.Blue => c.B,
+            Channel.Alpha => c.A,
 
-            Channel.H => (int) (c.GetHue() * 255),
-            Channel.S => (int) (c.GetSaturation() * 255),
-            Channel.L => (int) (c.GetLuma() * 255),
+            Channel.Hue => (int) (c.GetHue() * 255 / 360),
+            Channel.Saturation => (int) (c.GetSat() * 255),
+            Channel.Value => (int) (c.GetValue() * 255),
 
             Channel.Gray => (int) (c.R + c.G + c.B) / 3
         } * (Width - 1) / 255;
@@ -232,10 +239,9 @@ namespace ASECII {
         public void UpdateColors(Color source) {
             SetChannel func = GetModifier();
 
-            for (int i = 0; i < Width; i++) {
+            for (int i = 0; i < Width + 1; i++) {
                 bar[i] = func(source, (byte)(i * 255 / Width));
             }
-
             index = GetIndex(source);
         }
         public override bool ProcessMouse(MouseScreenObjectState state) {
