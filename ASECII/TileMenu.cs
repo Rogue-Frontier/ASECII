@@ -40,7 +40,7 @@ namespace ASECII {
             for (int i = 0; i < tileModel.tiles.Count; i++) {
                 this.SetCellAppearance(i % Width, i / Width, tileModel.tiles[i]);
             }
-            if (tileModel.brushIndex != null) {
+            if (tileModel.brushIndex > -1) {
                 var i = tileModel.brushIndex.Value;
                 int x = i % Width;
                 int y = i / Width;
@@ -56,18 +56,23 @@ namespace ASECII {
         public List<TileValue> tiles = new List<TileValue>();
         public HashSet<TileValue> tileset = new HashSet<TileValue>();
         public int? brushIndex;
-        public TileIndex brushTile => brushIndex.HasValue ? new TileIndex(this, brushIndex.Value) : null;
+        public TileIndex brushTile => brushIndex > -1 ? new TileIndex(this, brushIndex.Value) : null;
 
         public void AddTile(TileValue c) {
             tiles.Add(c);
             tileset.Add(c);
         }
+        public void RemoveTile(TileValue c) {
+            tiles.Remove(c);
+            tileset.Remove(c);
+        }
+        public void RemoveTile(int index) {
+            tileset.Remove(tiles[index]);
+            tiles.RemoveAt(index);
+        }
         public void UpdateIndexes(SpriteModel spriteModel) {
             var cell = spriteModel.brush.cell;
-            brushIndex = tiles.FindIndex(t => t.Foreground == cell.Foreground && t.Background == cell.Background && t.Glyph == cell.Glyph);
-            if (brushIndex == -1) {
-                brushIndex = null;
-            }
+            brushIndex = tiles.FindIndex(t => t.cg.Matches(cell.cg));
         }
     }
 }

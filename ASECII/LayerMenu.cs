@@ -6,6 +6,7 @@ using System.Text;
 using SadRogue.Primitives;
 using Console = SadConsole.Console;
 using ArchConsole;
+using System.Linq;
 
 namespace ASECII {
     class LayerMenu : Console {
@@ -15,43 +16,44 @@ namespace ASECII {
         }
         public void UpdateListing() {
             this.Children.Clear();
-            int i = 0;
             var layers = model.sprite.layers;
-            foreach (var l in layers) {
+            int i = layers.Count - 1;
+            foreach (var l in ((IEnumerable<Layer>)layers).Reverse()) {
                 int index = i;
-
+                int x = 0;
+                int y = i;
                 this.Children.Add(new ColorCellButton(() => l.visible ? Color.White : Color.Black,
                     () => {
                         l.visible = !l.visible;
                     }, '*') {
-                    Position = new Point(0, index)
+                    Position = new Point(x, y)
                 });
+                x++;
+                this.Children.Add(new CellButton(() => index > 0,
+                    () => {
+                        if (model.currentLayerIndex == index) {
+                            model.currentLayerIndex--;
+                        }
 
+                        layers.RemoveAt(index);
+                        layers.Insert(index - 1, l);
+                        UpdateListing();
+                    }, '-') {
+                    Position = new Point(x, y)
+                });
+                x++;
                 this.Children.Add(new CellButton(() => index < layers.Count - 1,
                     () => {
                         layers.RemoveAt(index);
                         layers.Insert(index + 1, l);
 
-                        if(model.currentLayerIndex == index) {
+                        if (model.currentLayerIndex == index) {
                             model.currentLayerIndex++;
                         }
 
                         UpdateListing();
-                    }, '-') {
-                    Position = new Point(1, index)
-                });
-
-                this.Children.Add(new CellButton(() => index > 0,
-                        () => {
-                            if (model.currentLayerIndex == index) {
-                                model.currentLayerIndex--;
-                            }
-
-                            layers.RemoveAt(index);
-                            layers.Insert(index - 1, l);
-                            UpdateListing();
-                        }, '+') {
-                    Position = new Point(2, index)
+                    }, '+') {
+                    Position = new Point(x, y)
                 });
 
                 ColorButton nameButton = null;
@@ -69,13 +71,13 @@ namespace ASECII {
                             this.Children.Add(layerSettings);
                         }
                     }, '?') {
-                    Position = new Point(3, index)
+                    Position = new Point(3, y)
                 });
 
                 nameButton = new ColorButton(GetLabel(),
                     () => model.currentLayerIndex == index ? Color.Yellow : Color.White,
                     () => model.currentLayerIndex = index) {
-                    Position = new Point(4, index)
+                    Position = new Point(4, y)
                 };
                 this.Children.Add(nameButton);
 
@@ -91,7 +93,7 @@ namespace ASECII {
 
                         UpdateListing();
                     }, '%') {
-                    Position = new Point(13, index)
+                    Position = new Point(13, y)
                 });
 
                 this.Children.Add(new CellButton(() => model.sprite.layers.Count > 1,
@@ -104,9 +106,9 @@ namespace ASECII {
 
                             UpdateListing();
                         }, 'X') {
-                    Position = new Point(15, index)
+                    Position = new Point(15, y)
                 });
-                i++;
+                i--;
             }
         }
         public override bool ProcessMouse(MouseScreenObjectState state) {

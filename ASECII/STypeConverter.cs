@@ -1,11 +1,13 @@
-﻿using Microsoft.Xna.Framework;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
+using SadConsole;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
 using System.Text;
+using SadRogue.Primitives;
+using static SadConsole.ColoredString;
 
 namespace ASECII {
     //https://stackoverflow.com/a/57319194
@@ -13,8 +15,9 @@ namespace ASECII {
         public static void PrepareConvert() {
             //https://stackoverflow.com/a/57319194
             TypeDescriptor.AddAttributes(typeof((int, int)),  new TypeConverterAttribute(typeof(Int2Converter)));
+            
             TypeDescriptor.AddAttributes(typeof((uint, uint)), new TypeConverterAttribute(typeof(UInt2Converter)));
-            TypeDescriptor.AddAttributes(typeof(Color), new TypeConverterAttribute(typeof(ColorConverter)));
+            //TypeDescriptor.AddAttributes(typeof(Color), new TypeConverterAttribute(typeof(ColorConverter)));
         }
     }
     public static class ASECIILoader {

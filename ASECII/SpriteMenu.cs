@@ -62,7 +62,7 @@ namespace ASECII {
             Action UpdateChannels = () => { };
             Action UpdateColorButtons = () => { };
 
-            ActiveLabelButton tileButton = null;
+            LabelButton tileButton = null;
 
             ColorLabel foregroundLabel = null, backgroundLabel = null;
             CellButton foregroundAddButton = null, backgroundAddButton = null;
@@ -131,7 +131,7 @@ namespace ASECII {
 
             var tileMenu = new TileMenu(controlsMenu.Width, 4, model, tileModel, () => {
                 tileModel.UpdateIndexes(model);
-                tileButton.UpdateActive();
+                UpdateTileButton();
 
                 paletteModel.UpdateIndexes(model);
                 PaletteChanged();
@@ -147,14 +147,24 @@ namespace ASECII {
 
             y += 4;
 
-            tileButton = new ActiveLabelButton("Add Tile", () => {
-                var c = model.brush.cell;
-                return tileModel.brushIndex == null;
-            }, () => {
-                tileModel.AddTile(model.brush.cell);
-                tileModel.UpdateIndexes(model);
-                tileButton.UpdateActive();
-            }) {
+            void UpdateTileButton() {
+                if (tileModel.brushIndex > -1) {
+                    tileButton.text = "Remove Tile";
+                    tileButton.leftClick = () => {
+                        tileModel.RemoveTile(tileModel.brushIndex.Value);
+                        tileModel.UpdateIndexes(model);
+                        UpdateTileButton();
+                    };
+                } else {
+                    tileButton.text = "Add Tile";
+                    tileButton.leftClick = () => {
+                        tileModel.AddTile(model.brush.cell);
+                        tileModel.UpdateIndexes(model);
+                        UpdateTileButton();
+                    };
+                }
+            }
+            tileButton = new LabelButton("", null) {
                 Position = new Point(0, y),
                 FocusOnMouseClick = true,
                 UseMouse = true
@@ -182,7 +192,7 @@ namespace ASECII {
 
             var glyphMenu = new GlyphMenu(16, 16, model, () => {
                 tileModel.UpdateIndexes(model);
-                tileButton.UpdateActive();
+                UpdateTileButton();
             }) {
                 Position = new Point(0, y),
                 FocusOnMouseClick = true,
@@ -199,7 +209,7 @@ namespace ASECII {
             void AddPaletteMenu() {
                 var paletteMenu = new PaletteMenu(16, 4, model, paletteModel, () => {
                     tileModel.UpdateIndexes(model);
-                    tileButton.UpdateActive();
+                    UpdateTileButton();
                     pickerModel.UpdateBrushPoints(paletteModel);
                     PaletteChanged();
 
@@ -535,7 +545,7 @@ namespace ASECII {
                         break;
                     }
                 case ColorMode.Grayscale: {
-                        colorMenu = new Console(16, 32) { DefaultBackground = Color.AnsiCyan };
+                        colorMenu = new Console(controlsMenu.Width, 16) { DefaultBackground = Color.AnsiCyan };
 
                         ChannelBar foreground = null, background = null;
                         ChannelBar foregroundA = null, backgroundA = null;
@@ -609,7 +619,7 @@ namespace ASECII {
                 UpdateChannels();
 
                 tileModel.UpdateIndexes(model);
-                tileButton.UpdateActive();
+                UpdateTileButton();
 
                 paletteModel.UpdateIndexes(model);
 
@@ -628,7 +638,7 @@ namespace ASECII {
             void AddPickerMenu() {
                 var pickerMenu = new PickerMenu(16, 16, model, pickerModel, () => {
                     tileModel.UpdateIndexes(model);
-                    tileButton.UpdateActive();
+                    UpdateTileButton();
 
                     paletteModel.UpdateIndexes(model);
 
@@ -693,7 +703,7 @@ namespace ASECII {
             
             model.brushChanged = () => {
                 tileModel.UpdateIndexes(model);
-                tileButton.UpdateActive();
+                UpdateTileButton();
                 paletteModel.UpdateIndexes(model);
                 PaletteChanged();
 
@@ -706,7 +716,7 @@ namespace ASECII {
             layerMenu.UpdateListing();
 
             tileModel.UpdateIndexes(model);
-            tileButton.UpdateActive();
+            UpdateTileButton();
 
             paletteModel.UpdateIndexes(model);
             UpdateColorButtons();
@@ -1311,10 +1321,10 @@ namespace ASECII {
         public string filepath;
         public Sprite sprite;
 
-        public int brushGlyph => tiles.brushIndex.HasValue ? tiles.brushTile.Glyph : brush.cell.Glyph;
+        public int brushGlyph => tiles.brushIndex > -1 ? tiles.brushTile.Glyph : brush.cell.Glyph;
         public TileRef brushTile => colorMode switch {
             ColorMode.Notepad => new NotepadTile(brushGlyph),
-            _ => (tiles.brushIndex.HasValue ? (TileRef)tiles.brushTile : (TileRef)brush.cell)
+            _ => (tiles.brushIndex > -1 ? (TileRef)tiles.brushTile : (TileRef)brush.cell)
         };
 
         public TileModel tiles;
@@ -1391,8 +1401,28 @@ namespace ASECII {
                 str.AppendLine();
             }
             File.WriteAllText($"{filepath}.txt", str.ToString());
-
-            var t = ((ScreenSurfaceRenderer)renderer.Renderer).BackingTexture;
+            Console c = null;
+            if (infinite) {
+                c = new Console(sprite.end.X - sprite.origin.X + 1, sprite.end.Y - sprite.origin.Y + 1);
+                for (int y = sprite.origin.Y; y <= sprite.end.Y; y++) {
+                    for (int x = sprite.origin.X; x <= sprite.end.X; x++) {
+                        if (preview.TryGetValue((x, y), out var tile)) {
+                            c.SetCellAppearance(x - sprite.origin.X, y - sprite.origin.Y, tile);
+                        }
+                    }
+                }
+            } else {
+                c = new Console(width, height);
+                for (int y = 0; y <= height; y++) {
+                    for (int x = 0; x <= width; x++) {
+                        if (preview.TryGetValue((x, y), out var tile)) {
+                            c.SetCellAppearance(x - sprite.origin.X, y - sprite.origin.Y, tile);
+                        }
+                    }
+                }
+            }
+            c.Render(new TimeSpan());
+            var t = ((ScreenSurfaceRenderer)c.Renderer).BackingTexture;
             t.Save($"{filepath}.png");
 
             AddAction(new SaveEdit());
