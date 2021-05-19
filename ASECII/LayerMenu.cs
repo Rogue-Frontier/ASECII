@@ -17,11 +17,11 @@ namespace ASECII {
         public void UpdateListing() {
             this.Children.Clear();
             var layers = model.sprite.layers;
-            int i = layers.Count - 1;
-            foreach (var l in ((IEnumerable<Layer>)layers).Reverse()) {
+            int i = 0;
+            foreach(var l in layers) {
                 int index = i;
                 int x = 0;
-                int y = i;
+                int y = layers.Count - i - 1;
                 this.Children.Add(new ColorCellButton(() => l.visible ? Color.White : Color.Black,
                     () => {
                         l.visible = !l.visible;
@@ -60,7 +60,9 @@ namespace ASECII {
 
                 string GetLabel() => $">{(l.name.Length > 8 ? l.name.Remove(8) : l.name)}";
 
-                var layerSettings = new LayerSettings(l, () => nameButton.text = GetLabel()) { Position = new Point(16, index) };
+                var layerSettings = new LayerSettings(l, () => nameButton.text = GetLabel()){
+                    Position = new Point(16, index)
+                };
 
                 this.Children.Add(new ColorCellButton(() => !this.Children.Contains(layerSettings) ? Color.White : Color.Black,
                     () => {
@@ -76,39 +78,34 @@ namespace ASECII {
 
                 nameButton = new ColorButton(GetLabel(),
                     () => model.currentLayerIndex == index ? Color.Yellow : Color.White,
-                    () => model.currentLayerIndex = index) {
-                    Position = new Point(4, y)
-                };
+                    () => model.currentLayerIndex = index
+                    ) { Position = new Point(4, y) };
                 this.Children.Add(nameButton);
 
                 this.Children.Add(new CellButton(() => index > 0,
                     () => {
+                        //Change to use Edits
                         var below = layers[index - 1];
                         below.Flatten(l);
                         layers.RemoveAt(index);
-
                         if (model.currentLayerIndex == index) {
                             model.currentLayerIndex--;
                         }
-
                         UpdateListing();
                     }, '%') {
                     Position = new Point(13, y)
                 });
-
                 this.Children.Add(new CellButton(() => model.sprite.layers.Count > 1,
                         () => {
                             layers.RemoveAt(index);
-
                             if (model.currentLayerIndex == index && index > 0) {
                                 model.currentLayerIndex--;
                             }
-
                             UpdateListing();
                         }, 'X') {
                     Position = new Point(15, y)
                 });
-                i--;
+                i++;
             }
         }
         public override bool ProcessMouse(MouseScreenObjectState state) {
