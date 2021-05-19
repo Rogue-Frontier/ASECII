@@ -6,6 +6,7 @@
     <TargetFramework>net5.0</TargetFramework>
     <RootNamespace>ASECII</RootNamespace>
     <AssemblyName>ASECII</AssemblyName>
+    <StartupObject>ASECII.Program</StartupObject>
   </PropertyGroup>
   <ItemGroup>
     <None Include="Content\IBMCGA.png">

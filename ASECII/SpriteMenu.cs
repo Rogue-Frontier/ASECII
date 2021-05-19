@@ -1413,10 +1413,11 @@ namespace ASECII {
                 }
             } else {
                 c = new Console(width, height);
-                for (int y = 0; y <= height; y++) {
-                    for (int x = 0; x <= width; x++) {
+                for (int y = 0; y < height; y++) {
+                    for (int x = 0; x < width; x++) {
                         if (preview.TryGetValue((x, y), out var tile)) {
-                            c.SetCellAppearance(x - sprite.origin.X, y - sprite.origin.Y, tile);
+                            //c.SetCellAppearance(x - sprite.origin.X, y - sprite.origin.Y, tile);
+                            c.SetCellAppearance(x, y, tile);
                         }
                     }
                 }
@@ -2213,7 +2214,7 @@ namespace ASECII {
                 var p = keyCursor ?? model.cursor;
                 if(model.IsEditable(p)) {
                     if (c != 0) {
-                        var layer = sprite.layers[0];
+                        var layer = model.currentLayer;
                         var tile = new TileValue(brush.foreground, brush.background, c);
                         var e = new SingleEdit(p, layer, tile);
                         Add(e);
@@ -2223,7 +2224,7 @@ namespace ASECII {
                 }
 
             } else if (info.IsKeyDown(Back)) {
-                var layer = sprite.layers[0];
+                var layer = model.currentLayer;
                 var p = keyCursor ?? model.cursor;
                 var e = new SingleEdit(p, layer, null);
                 Add(e);

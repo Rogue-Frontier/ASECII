@@ -16,6 +16,7 @@ using static SadConsole.Input.Keys;
 using Console = SadConsole.Console;
 using ArchConsole;
 using Newtonsoft.Json.Serialization;
+using System.Threading.Tasks;
 
 namespace ASECII {
     public interface FileMode {
@@ -77,11 +78,26 @@ namespace ASECII {
             }
         }
     }
+    public interface ILoadResult {}
+    public class LoadFailure : ILoadResult {
+        public string message;
+        public LoadFailure(string message) => this.message = message;
+    }
+    public class LoadBusy : ILoadResult {
+        public LoadBusy() { }
+    }
+    public class LoadNonexistent : ILoadResult {
+        public LoadNonexistent() { }
+    }
+    public class LoadSuccess : ILoadResult {
+        public SpriteModel preview;
+        public LoadSuccess(SpriteModel preview) => this.preview = preview;
+    }
     class FileMenu : ControlsConsole {
         public static string RECENTFILES = "RecentFiles.json";
 
         SpriteModel hoveredFile;
-        Dictionary<string, SpriteModel> preloaded;
+        Dictionary<string, ILoadResult> preloaded;
 
         HashSet<string> recentFiles;
         List<LabelButton> recentListing;
@@ -92,13 +108,15 @@ namespace ASECII {
 
         int folderListingX;
 
+        string console = "";
+
         public FileMenu(int width, int height, FileMode mode) : base(width, height) {
 
             DefaultBackground = Color.Black;
 
 
             this.recentFiles = File.Exists(RECENTFILES) ? ASECIILoader.DeserializeObject<HashSet<string>>(File.ReadAllText(RECENTFILES)).Where(f => File.Exists(f)).ToHashSet() : new HashSet<string>();
-            this.preloaded = new Dictionary<string, SpriteModel>();
+            this.preloaded = new Dictionary<string, ILoadResult>();
             this.recentListing = new List<LabelButton>();
             int n = 3;
 
@@ -135,7 +153,6 @@ namespace ASECII {
             FocusOnMouseClick = true;
             folderListing = new List<LabelButton>();
 
-
             textbox = new TextField(width - folderListingX) {
                 Position = new Point(folderListingX, 1),
                 
@@ -144,9 +161,8 @@ namespace ASECII {
                 IsFocused = true,
                 text = mode.InitialPath,
             };
-            textbox.TextChanged += (tf) => {
-                UpdateListing(textbox.text);
-            };
+            textbox.TextChanged += tf => UpdateListing(textbox.text);
+            textbox.EnterPressed += tf => EnterFile();
             this.Children.Add(textbox);
             UpdateListing(textbox.text);
         }
@@ -214,38 +230,70 @@ namespace ASECII {
                     folderListing.Add(b);
 
                     void Load() {
-                        mode.Enter(this, file);
-                        AddRecentFile(file);
+                        EnterFile(file);
                     }
                 }
             }
         }
-
+        public void Log(string message) {
+            console = $"{message}";
+        }
         public void ShowPreview(string file) {
-            if (preloaded.TryGetValue(file, out hoveredFile)) {
-                return;
+            if (preloaded.TryGetValue(file, out var result)) {
+                Handle(file, result);
             } else {
-                preloaded[file] = null;
+                Load(file);
+            }
+        }
+        public void Handle(string file, ILoadResult result) {
+            switch (result) {
+                case LoadBusy:
+                    Log($"[{file}]\nLoading...");
+                    hoveredFile = null;
+                    break;
+                case LoadFailure f:
+                    Log($"[{file}]\n{f.message}");
+                    hoveredFile = null;
+                    break;
+                case LoadSuccess s:
+                    Log($"[{file}]\nLoaded successfully");
+                    hoveredFile = s.preview;
+                    break;
 
-                System.Threading.Tasks.Task.Run(StartLoad);
-                void StartLoad() {
-                    try {
-                        var model = ASECIILoader.DeserializeObject<SpriteModel>(File.ReadAllText(file));
-                        if (model?.filepath == null) {
-                            preloaded[file] = null;
-                            hoveredFile = null;
-                            return;
-                        }
-                        preloaded[file] = model;
-                        hoveredFile = model;
-                    } catch (Exception e) {
-                        preloaded[file] = null;
-                        hoveredFile = null;
+                case LoadNonexistent s:
+                    Log($"[{file}]\nDoes not exist");
+                    hoveredFile = null;
+                    break;
+            }
+        }
+        public async Task Load(string file) {
+            if(!File.Exists(file)) {
+                preloaded[file] = new LoadNonexistent();
+                return;
+            }
+
+            preloaded[file] = new LoadBusy();
+            await Task.Run(StartLoad);
+            void StartLoad() {
+                try {
+                    var model = ASECIILoader.DeserializeObject<SpriteModel>(File.ReadAllText(file));
+                    if (model?.filepath == null) {
+                        Failed("Filepath does not exist");
+                        return;
                     }
+                    var s = new LoadSuccess(model);
+                    preloaded[file] = s;
+                    Handle(file, s);
+                } catch (Exception e) {
+                    Failed(e.Message);
+                }
+                void Failed(string message) {
+                    var f = new LoadFailure(message);
+                    preloaded[file] = f;
+                    Handle(file, f);
                 }
             }
         }
-
         public override void Render(TimeSpan delta) {
             base.Render(delta);
             this.Clear();
@@ -258,13 +306,10 @@ namespace ASECII {
                 }
             }
             if (hoveredFile != null && hoveredFile.sprite != null) {
-
                 var s = hoveredFile.sprite;
-
                 var previewX = (Width - (s.end - s.origin).X) < 64 ? 0 : 64;
                 var previewY = 0;
                 var origin = hoveredFile.sprite.origin;
-
                 
                 var previewStart = new Point(previewX, previewY);
                 for (int x = previewX; x < Width; x++) {
@@ -277,14 +322,31 @@ namespace ASECII {
                     }
                 }
             }
+            int yy = Height - 16;
+            foreach(var line in console.Split('\n')) {
+                this.Print(16, yy++, line, Color.White, Color.Black);
+            }
         }
         public override bool ProcessKeyboard(Keyboard keyboard) {
             if (keyboard.IsKeyPressed(Enter)) {
-                var f = textbox.text;
-                mode.Enter(this, f);
-                AddRecentFile(f);
+                EnterFile();
             }
             return base.ProcessKeyboard(keyboard);
+        }
+        public async Task EnterFile() => await EnterFile(textbox.text);
+
+        public async Task EnterFile(string f) {
+            if (preloaded.TryGetValue(f, out var result)) {
+                if (result is LoadSuccess || result is LoadNonexistent) {
+                    mode.Enter(this, f);
+                    AddRecentFile(f);
+                } else {
+                    Handle(f, result);
+                }
+            } else {
+                await Load(f);
+                EnterFile(f);
+            }
         }
     }
 
