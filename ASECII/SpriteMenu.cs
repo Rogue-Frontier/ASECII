@@ -93,12 +93,11 @@ namespace ASECII {
                 text = model.height.ToString(),
                 CharFilter = c => char.IsNumber(c),
                 TextChanged = f => {
-                    f.text.TrimStart('0');
-                    if (f.text.Length == 0) {
-                        f.text = "1";
-                    }
 
-                    model.height = int.Parse(f.text);
+                    var s = f.text.TrimStart('0');
+                    if (s.Any()) {
+                        model.height = int.Parse(s);
+                    }
                 },
                 Position = new Point(x + 8, y)
             };
