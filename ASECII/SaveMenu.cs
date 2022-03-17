@@ -203,16 +203,16 @@ namespace ASECII {
                     ShowFiles(Directory.GetFiles(parent).Where(p => p.StartsWith(filepath)));
                 }
             }
-
-
             foreach (var button in folderListing.Take(64)) {
-                this.Children.Add(button);
+                Children.Add(button);
             }
-
             void ShowDirectories(IEnumerable<string> directories) {
                 foreach (var directory in directories) {
                     i++;
-                    var b = new LabelButton(Path.GetFileName(directory), () => textbox.text = directory) {
+                    var b = new LabelButton(Path.GetFileName(directory) + "\\", () => {
+                        textbox.text = directory + "\\";
+                        textbox.index = textbox.text.Length;
+                    }) {
                         Position = new Point(folderListingX, i),
                     };
                     folderListing.Add(b);

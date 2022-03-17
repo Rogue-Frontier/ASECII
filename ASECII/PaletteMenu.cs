@@ -11,7 +11,7 @@ namespace ASECII {
         SpriteModel spriteModel;
         MouseWatch mouse;
         PaletteModel paletteModel;
-        Action brushChanged;
+        public event Action brushChanged;
 
         public PaletteMenu(int width, int height, SpriteModel spriteModel, PaletteModel paletteModel, Action brushChanged) : base(width, height) {
             this.spriteModel = spriteModel;

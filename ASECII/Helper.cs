@@ -41,7 +41,8 @@ namespace ASECII {
         public static Color Blend(this Color c, Color back) => new Color(
                 (c.R * c.A) / 255 + (byte) (back.R * (1 - c.A / 255f)),
                 (c.G * c.A) / 255 + (byte) (back.G * (1 - c.A / 255f)),
-                (c.B * c.A) / 255 + (byte) (back.B * (1 - c.A / 255f))
+                (c.B * c.A) / 255 + (byte) (back.B * (1 - c.A / 255f)),
+                Math.Min(255, back.A + c.A)
                 );
         public static float GetSat(this Color c) {
 

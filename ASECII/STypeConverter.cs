@@ -8,6 +8,7 @@ using System.Linq;
 using System.Text;
 using SadRogue.Primitives;
 using static SadConsole.ColoredString;
+using System.IO;
 
 namespace ASECII {
     //https://stackoverflow.com/a/57319194
@@ -21,6 +22,8 @@ namespace ASECII {
         }
     }
     public static class ASECIILoader {
+        public static Dictionary<(int, int), TileValue> LoadCG(string path) =>
+            DeserializeObject<Dictionary<(int, int), TileValue>>(File.ReadAllText(path));
         public static T DeserializeObject<T>(string s) {
             STypeConverter.PrepareConvert();
             return JsonConvert.DeserializeObject<T>(s, SFileMode.settings);

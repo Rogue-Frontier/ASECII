@@ -10,15 +10,12 @@ using System.Runtime.Serialization;
 
 namespace ASECII {
     public class Sprite {
-        public List<Layer> layers;
+        public List<Layer> layers = new();
         public Point origin;
         public Point end;
-        public Dictionary<(int, int), TileValue> preview;
+        public Dictionary<(int, int), TileValue> preview = new();
         public static TileValue empty => new TileValue(Color.Transparent, Color.Transparent, 0);
-        public Sprite() {
-            layers = new List<Layer>();
-            preview = new Dictionary<(int, int), TileValue>();
-        }
+        public Sprite() {}
         public bool InRect(Point pos) => pos.X >= origin.X && pos.Y >= origin.Y && pos.X <= end.X && pos.Y <= end.Y;
         public void UpdatePreview() {
             preview = new Dictionary<(int, int), TileValue>();
@@ -51,7 +48,6 @@ namespace ASECII {
                 if(modifier == null) {
                     continue;
                 }
-
                 foreach(var (point, tile) in layer.cells) {
                     var (x, y) = point + layer.pos;
                     if (!preview.TryGetValue((x, y), out var current)) {
@@ -69,7 +65,6 @@ namespace ASECII {
                 origin = end = new Point(0, 0);
             }
         }
-
         public void GetIntermediate((int, int) pos, int topLayer) {
             TileValue current = new TileValue(Color.Transparent, Color.Transparent, 0);
             foreach (var layer in layers.Take(topLayer)) {
@@ -115,21 +110,12 @@ namespace ASECII {
 
     }
     public class Layer {
-        public Point pos;
-        public bool visible, applyGlyph, applyForeground, applyBackground;
-        public Dictionary<(int, int), TileRef> cells;
+        public Point pos = new(0, 0);
+        public bool visible = true, applyGlyph = true, applyForeground = true, applyBackground = true;
+        public Dictionary<(int, int), TileRef> cells = new();
 
         public string name = "Layer 0";
-        public Layer() {
-            pos = new Point(0, 0);
-            visible = true;
-            
-            applyGlyph = true;
-            applyForeground = true;
-            applyBackground = true;
-
-            cells = new Dictionary<(int, int), TileRef>();
-        }
+        public Layer() {}
         public static (Color, Color, int)? Triple(TileRef t) => t != null ? (t.Foreground, t.Background, t.Glyph) : (Color.Transparent, Color.Transparent, 0);
         public HashSet<Point> GetGlobalFill((Color, Color, int)? source, Point origin, Point end) {
             HashSet<Point> affected = new HashSet<Point>();

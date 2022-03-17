@@ -3,17 +3,18 @@ using Newtonsoft.Json;
 using System.IO;
 using Color = SadRogue.Primitives.Color;
 using SadConsole;
+using SadConsole.UI;
 
 namespace ASECII {
-    internal class Program {
-        static int width = 160;
-        static int height = 90;
+    public class Program {
+        public static int width = 160;
+        public static int height = 90;
+        public static int tileSize = 8;
+
+        public static (int, int) calculate(int size) => (width * tileSize / size, height * tileSize / size);
 
         public static string STATE_FILE = "state.json";
         private static void Main(string[] args) {
-            SadConsole.UI.Themes.Library.Default.Colors.ControlHostBack = Color.Black;
-            SadConsole.UI.Themes.Library.Default.Colors.ControlBack = Color.Gray;
-
             //SadConsole.Settings.UnlimitedFPS = true;
             SadConsole.Settings.UseDefaultExtendedFont = true;
             SadConsole.Game.Create(width, height, "Content/IBMCGA.font", g => {

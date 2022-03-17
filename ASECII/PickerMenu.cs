@@ -211,10 +211,10 @@ namespace ASECII {
         public delegate Color SetChannel(Color c, byte amount);
 
         private SetChannel GetModifier() => channel switch {
-            Channel.Red => ColorExtensions.SetRed,
-            Channel.Green => ColorExtensions.SetGreen,
-            Channel.Blue => ColorExtensions.SetBlue,
-            Channel.Alpha => ColorExtensions.SetAlpha,
+            Channel.Red => ColorExtensions2.SetRed,
+            Channel.Green => ColorExtensions2.SetGreen,
+            Channel.Blue => ColorExtensions2.SetBlue,
+            Channel.Alpha => ColorExtensions2.SetAlpha,
 
             Channel.Hue => (c, b) => Helper.HsvToRgb(b * 360d / 255, c.GetSat(), c.GetValue()).SetAlpha(c.A),
             Channel.Saturation => (c, b) => Helper.HsvToRgb(c.GetHue(), b / 255f, c.GetValue()).SetAlpha(c.A),

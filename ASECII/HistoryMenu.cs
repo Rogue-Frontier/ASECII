@@ -49,26 +49,26 @@ namespace ASECII {
             UpdateListing();
         }
         public void UpdateListing() {
-            buttons.ForEach(this.Children.Remove);
+            Children.Clear();
             buttons.Clear();
 
             int y = 0;
-            foreach(var e in model.Undo.Skip(scroll.index)) {
+            foreach(var e in model.Undo.Skip(scroll.index).Take(Height - y)) {
                 var b = new LabelButton($"<{e.Name}", () => UndoTo(e)) { Position = new Point(0, y) };
-                this.Children.Add(b);
+                Children.Add(b);
                 buttons.Add(b);
                 y++;
             }
-
-            foreach (var e in model.Redo.Reverse().Skip(scroll.index - model.Undo.Count())) {
+            
+            foreach (var e in model.Redo.Reverse().Skip(scroll.index - model.Undo.Count()).Take(Height - y)) {
                 var b = new LabelButton($">{e.Name}", () => RedoTo(e)) { Position = new Point(0, y) };
-                this.Children.Add(b);
+                Children.Add(b);
                 buttons.Add(b);
                 y++;
             }
         }
         public void UndoTo(Edit e) {
-            Edit current = null;
+            Edit current;
             do {
                 current = model.Undo.Last();
                 model.Undo.RemoveLast();
@@ -79,7 +79,7 @@ namespace ASECII {
             UpdateListing();
         }
         public void RedoTo(Edit e) {
-            Edit current = null;
+            Edit current;
             do {
                 current = model.Redo.Last();
                 model.Redo.RemoveLast();
@@ -90,9 +90,11 @@ namespace ASECII {
             UpdateListing();
         }
         public override bool ProcessMouse(MouseScreenObjectState state) {
-            scroll.index += state.Mouse.ScrollWheelValueChange / 60;
-            UpdateListing();
-
+            int deltaScroll = state.Mouse.ScrollWheelValueChange / 60;
+            if(deltaScroll != 0) {
+                scroll.index += deltaScroll;
+                UpdateListing();
+            }
             mouse.Update(state, IsMouseOver);
             if (mouse.left == ClickState.Held && mouse.leftPressedOnScreen) {
                 var deltaY = mouse.prevPos.Y - mouse.nowPos.Y;
