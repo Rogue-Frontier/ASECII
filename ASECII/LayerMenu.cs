@@ -25,7 +25,7 @@ namespace ASECII {
                 this.Children.Add(new ColorCellButton(() => l.visible ? Color.White : Color.Black,
                     () => {
                         l.visible = !l.visible;
-                    }, '*') {
+                    }, (char)('*')) {
                     Position = new Point(x, y)
                 });
                 x++;
@@ -38,7 +38,7 @@ namespace ASECII {
                         layers.RemoveAt(index);
                         layers.Insert(index - 1, l);
                         UpdateListing();
-                    }, '-') {
+                    }, (char)('9' - 32)) {
                     Position = new Point(x, y)
                 });
                 x++;
@@ -52,7 +52,7 @@ namespace ASECII {
                         }
 
                         UpdateListing();
-                    }, '+') {
+                    }, (char)('8' - 32)) {
                     Position = new Point(x, y)
                 });
 
@@ -61,7 +61,7 @@ namespace ASECII {
                 string GetLabel() => $">{(l.name.Length > 8 ? l.name.Remove(8) : l.name)}";
 
                 var layerSettings = new LayerSettings(l, () => nameButton.text = GetLabel()){
-                    Position = new Point(16, index)
+                    Position = new Point(16, y)
                 };
 
                 this.Children.Add(new ColorCellButton(() => !this.Children.Contains(layerSettings) ? Color.White : Color.Black,
@@ -92,7 +92,7 @@ namespace ASECII {
                             model.currentLayerIndex--;
                         }
                         UpdateListing();
-                    }, '%') {
+                    }, (char)('6' - 32)) {
                     Position = new Point(13, y)
                 });
                 this.Children.Add(new CellButton(() => model.sprite.layers.Count > 1,

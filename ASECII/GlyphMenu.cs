@@ -24,7 +24,7 @@ namespace ASECII {
             mouse.Update(state, IsMouseOver);
             if (state.IsOnScreenObject && state.Mouse.LeftButtonDown && mouse.leftPressedOnScreen) {
                 int index = (state.SurfaceCellPosition.X) + (state.SurfaceCellPosition.Y * Width);
-                if (index < 256 && spriteModel.brush.glyph != index) {
+                if (index < Font.TotalGlyphs && spriteModel.brush.glyph != index) {
                     spriteModel.brush.glyph = (char)index;
                     brushChanged?.Invoke();
                 }
@@ -55,7 +55,7 @@ namespace ASECII {
             var brushX = spriteModel.brush.glyph % Width;
             var brushY = spriteModel.brush.glyph / Width;
 
-            for (int i = 0; i < 256; i++) {
+            for (int i = 0; i < Font.TotalGlyphs; i++) {
                 string s = ((char)i).ToString();
 
                 int x = i % Width;

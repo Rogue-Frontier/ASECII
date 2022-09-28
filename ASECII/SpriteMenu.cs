@@ -70,13 +70,12 @@ namespace ASECII {
 
             LabelButton infiniteButton = null;
             TextField widthField = null, heightField = null;
-            infiniteButton = new LabelButton(model.infinite ? "Infinite" : "Finite", () => {
+            infiniteButton = new LabelButton(model.infinite ? "Infinite" : "Size", () => {
                 model.infinite = !model.infinite;
                 //infiniteButton.text = model.infinite ? "Infinite" : "Finite";
                 ResetControls();
             }) { Position = new Point(x, y) };
             controlsMenu.Children.Add(infiniteButton);
-            y++;
             if (!model.infinite) {
                 widthField = new TextField(5) {
                     text = model.width.ToString(),
@@ -86,16 +85,16 @@ namespace ASECII {
 
                         model.width = f.text.Any() ? int.Parse(f.text) : 0;
                     },
-                    Position = new(x, y)
+                    Position = new(x+5, y)
                 };
-                heightField = new TextField(6) {
+                heightField = new TextField(5) {
                     text = model.height.ToString(),
                     CharFilter = c => char.IsNumber(c),
                     TextChanged = f => {
                         var s = f.text.TrimStart('0');
                         model.height = f.text.Any() ? int.Parse(f.text) : 0;
                     },
-                    Position = new(x + 8, y)
+                    Position = new(x + 11, y)
                 };
                 controlsMenu.Children.Add(widthField);
                 controlsMenu.Children.Add(heightField);
@@ -106,12 +105,21 @@ namespace ASECII {
             LabelButton colorModeButton = null;
             colorModeButton = new LabelButton((model.colorMode switch
             {
-                ColorMode.RGB => "Mode: RGB",
-                ColorMode.Grayscale => "Mode: Grayscale",
-                ColorMode.Notepad => "Mode: Notepad",
+                ColorMode.RGB =>       "RGB      ",
+                ColorMode.Grayscale => "Grayscale",
+                ColorMode.Notepad =>   "Notepad  ",
                 _ => "Color Mode"
             }), ChangeColorMode) { Position = new Point(0, y) };
             controlsMenu.Children.Add(colorModeButton);
+
+            tileButton = new LabelButton("", null) {
+                Position = new Point(15, y),
+                FocusOnMouseClick = true,
+                UseMouse = true
+            };
+            controlsMenu.Children.Add(tileButton);
+
+
 
 
             y++;
@@ -145,14 +153,14 @@ namespace ASECII {
 
             void UpdateTileSetButtons() {
                 if (tileModel.brushIndex > -1) {
-                    tileButton.text = "Remove Tile";
+                    tileButton.text = "-";
                     tileButton.leftClick = () => {
                         tileModel.RemoveTile(tileModel.brushIndex.Value);
                         tileModel.UpdateIndexes(model);
                         UpdateTileSetButtons();
                     };
                 } else {
-                    tileButton.text = "Add Tile";
+                    tileButton.text = "+";
                     tileButton.leftClick = () => {
                         tileModel.AddTile(model.brush.cell);
                         tileModel.UpdateIndexes(model);
@@ -160,13 +168,6 @@ namespace ASECII {
                     };
                 }
             }
-            tileButton = new LabelButton("", null) {
-                Position = new Point(0, y),
-                FocusOnMouseClick = true,
-                UseMouse = true
-            };
-            controlsMenu.Children.Add(tileButton);
-
             /*
             tileButton = new ActiveColorButton("Add Tile", () => {
                 var c = model.brush.cell;
@@ -184,9 +185,8 @@ namespace ASECII {
             };
             */
 
-            y++;
-
-            var glyphMenu = new GlyphMenu(16, 16, model, () => {
+            int rows = Font.TotalGlyphs / 16;
+            var glyphMenu = new GlyphMenu(16, rows, model, () => {
                 tileModel.UpdateIndexes(model);
                 UpdateTileSetButtons();
             }) {
@@ -196,7 +196,7 @@ namespace ASECII {
             };
             controlsMenu.Children.Add(glyphMenu);
 
-            y += 16;
+            y += rows;
 
             Console colorMenu = null;
             int yColorMenu = y;
@@ -219,7 +219,6 @@ namespace ASECII {
 
                 yColor += 4;
             }
-
             void AddForegroundLabel() {
                 foregroundRemoveButton = new CellButton(() => paletteModel.foregroundIndex != null, () => {
                         paletteModel.RemoveColor(model.brush.foreground);
@@ -252,7 +251,6 @@ namespace ASECII {
 
                 yColor++;
             }
-
             void AddBackgroundLabel() {
                 backgroundRemoveButton = new CellButton(() => {
                     return paletteModel.backgroundIndex != null;
@@ -289,7 +287,6 @@ namespace ASECII {
                 yColor++;
 
             }
-
             ChannelBar Bar(Channel c, Action a) =>
                 new(16, c, a) {
                     Position = new Point(0, yColor++),
@@ -312,9 +309,7 @@ namespace ASECII {
             }
             switch (model.colorMode) {
                 case ColorMode.RGB: {
-
                         bool rgb = true;
-
                         AddRGB();
                         controlsMenu.Children.Add(colorMenu);
                         void ChangeBarMode() {
@@ -335,13 +330,13 @@ namespace ASECII {
                             AddPaletteMenu();
 
                             var ch = new[] { Channel.Red, Channel.Green, Channel.Blue, Channel.Alpha };
-                            AddForegroundLabel();                   yColor++;
+                            AddForegroundLabel();
                             var fore = ch.Select(ForeBar).ToList(); yColor++;
                             fore.ForEach(colorMenu.Children.Add);
-                            AddBackgroundLabel();                   yColor++;
+                            AddBackgroundLabel();
                             var back = ch.Select(BackBar).ToList(); yColor++;
                             back.ForEach(colorMenu.Children.Add);
-                            y += 2;
+                            y++;
 
                             UpdateChannels = () => {
                                 fore.ForEach(f => f.UpdateColors(model.brush.foreground));
@@ -356,13 +351,13 @@ namespace ASECII {
                             AddPaletteMenu();
 
                             var ch = new[] { Channel.Hue, Channel.Saturation, Channel.Value, Channel.Alpha };
-                            AddForegroundLabel();                   yColor++;
+                            AddForegroundLabel();
                             var fore = ch.Select(ForeBar).ToList(); yColor++;
                             fore.ForEach(colorMenu.Children.Add);
-                            AddBackgroundLabel();                   yColor++;
+                            AddBackgroundLabel();
                             var back = ch.Select(BackBar).ToList(); yColor++;
                             back.ForEach(colorMenu.Children.Add);
-                            y += 2;
+                            y++;
 
                             UpdateChannels = () => {
                                 fore.ForEach(f => f.UpdateColors(model.brush.foreground));
@@ -378,13 +373,13 @@ namespace ASECII {
                         AddPaletteMenu();
 
                         var ch = new[] { Channel.Gray, Channel.Alpha };
-                        AddForegroundLabel();                   yColor++;
+                        AddForegroundLabel();
                         var fore = ch.Select(ForeBar).ToList(); yColor++;
                         fore.ForEach(colorMenu.Children.Add);
-                        AddBackgroundLabel();                   yColor++;
+                        AddBackgroundLabel();
                         var back = ch.Select(BackBar).ToList(); yColor++;
                         back.ForEach(colorMenu.Children.Add);
-                        y += 2;
+                        y++;
 
                         UpdateChannels = () => {
                             fore.ForEach(f => f.UpdateColors(model.brush.foreground));
@@ -418,6 +413,16 @@ namespace ASECII {
 
 
             void AddPickerMenu() {
+
+                var hueBar = new HueBar(16, 1, paletteModel, pickerModel) {
+                    Position = new Point(0, yColor),
+                    FocusOnMouseClick = true,
+                    UseMouse = true
+                };
+                colorMenu.Children.Add(hueBar);
+                yColor++;
+
+
                 var pickerMenu = new PickerMenu(16, 16, model, pickerModel, () => {
                     tileModel.UpdateIndexes(model);
                     UpdateTileSetButtons();
@@ -435,29 +440,13 @@ namespace ASECII {
                 colorMenu.Children.Add(pickerMenu);
 
                 yColor += 16;
-
-                var hueBar = new HueBar(16, 1, paletteModel, pickerModel) {
-                    Position = new Point(0, yColor),
-                    FocusOnMouseClick = true,
-                    UseMouse = true
-                };
-                colorMenu.Children.Add(hueBar);
-
-                yColor += 2;
+                yColor++;
             }
 
-            y = Height - 18;
+            LayerMenu layerMenu = null;
 
-            var layerMenu = new LayerMenu(32, 16, model) {
-                Position = new Point(0, y),
-                FocusOnMouseClick = true,
-                UseMouse = true
-            };
-            controlsMenu.Children.Add(layerMenu);
-
-            y += 16;
-
-            var layerAddButton = new LabelButton("Add Layer", () => {
+            y = Height - 8;
+            var layerAddButton = new LabelButton("+", () => {
 
                 //model.currentLayer = Math.Min(model.currentLayer, model.sprite.layers.Count - 1);
                 model.sprite.layers.Insert(model.currentLayerIndex + 1, new Layer() { name = $"Layer {model.sprite.layers.Count}" });
@@ -469,17 +458,26 @@ namespace ASECII {
             };
             controlsMenu.Children.Add(layerAddButton);
 
-            y++;
 
             var layerCutButton = new ActiveLabelButton("Cut to Layer", () => model.selection.Exists, () => {
                 model.SelectionToLayer();
                 layerMenu.UpdateListing();
             }) {
-                Position = new Point(0, y),
+                Position = new Point(4, y),
                 FocusOnMouseClick = true,
                 UseMouse = true
             };
             controlsMenu.Children.Add(layerCutButton);
+
+            y++;
+
+
+            layerMenu = new LayerMenu(32, 8, model) {
+                Position = new Point(0, y),
+                FocusOnMouseClick = true,
+                UseMouse = true
+            };
+            controlsMenu.Children.Add(layerMenu);
 
             model.selection.selectionChanged = layerCutButton.UpdateActive;
             

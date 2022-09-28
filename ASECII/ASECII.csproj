@@ -62,6 +62,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="Content\IBMCGA+.font">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Content\IBMCGA+.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="Content\IBMCGA.font">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
