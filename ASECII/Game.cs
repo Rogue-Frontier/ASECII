@@ -17,6 +17,7 @@ namespace ASECII {
         private static void Main(string[] args) {
             //SadConsole.Settings.UnlimitedFPS = true;
             SadConsole.Settings.UseDefaultExtendedFont = true;
+            Settings.WindowTitle = "ASECII";
             SadConsole.Game.Create(width, height, "Content/IBMCGA+.font", g => {
             });
             SadConsole.Game.Instance.OnStart = Init;
@@ -48,12 +49,13 @@ namespace ASECII {
                     var state = ASECIILoader.DeserializeObject<ProgramState>(File.ReadAllText(STATE_FILE));
                     if(state is EditorState e) {
                     
-                            var sprite = ASECIILoader.DeserializeObject<SpriteModel>(File.ReadAllText(e.loaded));
+                        var sprite = ASECIILoader.DeserializeObject<SpriteModel>(File.ReadAllText(e.loaded));
 
 
-                            sprite.OnLoad();
-                            Game.Instance.Screen = new EditorMain(width, height, sprite);
-                            return true;
+                        sprite.OnLoad();
+                        Settings.WindowTitle = $"ASECII: {sprite.filepath}";
+                        Game.Instance.Screen = new EditorMain(width, height, sprite);
+                        return true;
                     
                     }
                 } catch {

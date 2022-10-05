@@ -53,6 +53,7 @@ namespace ASECII {
             var Width = console.Width;
             var Height = console.Height;
 
+            Settings.WindowTitle = $"ASECII: {filepath}";
             if (File.Exists(filepath)) {
                 try {
                     var sprite = ASECIILoader.DeserializeObject<SpriteModel>(File.ReadAllText(filepath));
@@ -72,7 +73,6 @@ namespace ASECII {
             } else {
                 var model = new SpriteModel(Width, Height) { filepath = filepath };
                 model.sprite.layers.Add(new Layer());
-
                 File.WriteAllText(filepath, ASECIILoader.SerializeObject(model));
                 console.Children.Add(new EditorMain(Width, Height, model));
             }
