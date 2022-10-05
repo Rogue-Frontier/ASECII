@@ -2,7 +2,7 @@
 
 ![Banner](https://user-images.githubusercontent.com/15680274/194045908-117d3e8a-4f01-41bb-b0a1-357310de8ea8.png)
 
-Advanced ASCII painter developed as an open-source alternative to REXPaint.
+ASECII is a custom-made ASCII painter developed for Rogue Frontier.
 
 ### Menu features
 - Size
