@@ -47,8 +47,7 @@ namespace ASECII {
             if (File.Exists(STATE_FILE)) {
                 try {
                     var state = ASECIILoader.DeserializeObject<ProgramState>(File.ReadAllText(STATE_FILE));
-                    if(state is EditorState e) {
-                    
+                    if(state is EditorState e && File.Exists(e.loaded)) {
                         var sprite = ASECIILoader.DeserializeObject<SpriteModel>(File.ReadAllText(e.loaded));
 
 
