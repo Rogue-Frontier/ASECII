@@ -15,6 +15,7 @@ ASECII is a custom-made ASCII painter developed for Rogue Frontier.
   - Modes: RGBA / HSBA
   - Picker
   - Bars
+- History (press Z to show)
 - Layer
   - Add
   - Rename
@@ -28,6 +29,8 @@ ASECII is a custom-made ASCII painter developed for Rogue Frontier.
 - Brush (B)
 - Fill (F)
 - Type (T)
+- Undo (Left Ctrl + U)
+- Redo (Left Ctrl + R)
 - Shape Select (S): Rect / Circle / Freeform / Polygon
 - Wand Select (W): Local / Global
 - Deselect (D)
@@ -37,7 +40,7 @@ ASECII is a custom-made ASCII painter developed for Rogue Frontier.
 - Mouse Zoom (Ctrl + Wheel)
 - Mouse Scroll (Wheel / Shift + Wheel): Vertical / Horizontal
 
-Image files export to direct JSON-serialized ASECII objects, `Dictionary<Point, ColoredGlyph>`, and plain text (without color data).
+Image files export to JSON-serialized SpriteModel objects, JSON-serialized `Dictionary<Point, ColoredGlyph>`, and plain text (without color data).
 
 ## Preview
 ![image](https://user-images.githubusercontent.com/15680274/194050053-8676dd42-e4f7-4cb6-99cd-8e518c891cb5.png)
