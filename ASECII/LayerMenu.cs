@@ -25,7 +25,7 @@ namespace ASECII {
                 this.Children.Add(new ColorCellButton(() => l.visible ? Color.White : Color.Black,
                     () => {
                         l.visible = !l.visible;
-                    }, (char)('*')) {
+                    }, '*') {
                     Position = new Point(x, y)
                 });
                 x++;
@@ -94,6 +94,13 @@ namespace ASECII {
                         UpdateListing();
                     }, (char)('6' - 32)) {
                     Position = new Point(13, y)
+                });
+                this.Children.Add(new CellButton(() => true,
+                    () => {
+                        layers.Insert(index, new(model.currentLayer));
+                        UpdateListing();
+                    }, '=') {
+                    Position = new Point(14, y)
                 });
                 this.Children.Add(new CellButton(() => model.sprite.layers.Count > 1,
                         () => {

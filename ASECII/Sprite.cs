@@ -116,6 +116,15 @@ namespace ASECII {
 
         public string name = "Layer 0";
         public Layer() {}
+        public Layer(Layer copy) {
+            pos = (copy.pos.X, copy.pos.Y);
+            visible = copy.visible;
+            applyGlyph = copy.applyGlyph;
+            applyForeground = copy.applyForeground;
+            applyBackground = copy.applyBackground;
+            cells = new(copy.cells);
+            name = $"{copy.name} Copy";
+        }
         public static (Color, Color, int)? Triple(TileRef t) => t != null ? (t.Foreground, t.Background, t.Glyph) : (Color.Transparent, Color.Transparent, 0);
         public HashSet<Point> GetGlobalFill((Color, Color, int)? source, Point origin, Point end) {
             HashSet<Point> affected = new HashSet<Point>();

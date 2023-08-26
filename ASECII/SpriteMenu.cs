@@ -1169,6 +1169,9 @@ namespace ASECII {
 
         public void RenderCursor(Console c) {
             (var x, var y) = cursorScreen;
+            if(!c.IsValidCell(x, y)) {
+                return;
+            }
             var t = brush.cell.cg.SetBackground(c.GetBackground(x, y));
             c.SetCellAppearance(x, y, t);
         }

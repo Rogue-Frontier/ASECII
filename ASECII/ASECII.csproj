@@ -3,7 +3,7 @@
   <PropertyGroup>
 	<ApplicationManifest>app.manifest</ApplicationManifest>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net7.0</TargetFramework>
     <RootNamespace>ASECII</RootNamespace>
     <AssemblyName>ASECII</AssemblyName>
     <StartupObject>ASECII.Program</StartupObject>
