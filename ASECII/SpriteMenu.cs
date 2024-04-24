@@ -106,7 +106,7 @@ namespace ASECII {
             }), ChangeColorMode) { Position = new Point(0, y) };
             controlsMenu.Children.Add(colorModeButton);
 
-            tileButton = new LabelButton("", null) {
+            tileButton = new LabelButton("+", null) {
                 Position = new Point(15, y),
                 FocusOnMouseClick = true,
                 UseMouse = true

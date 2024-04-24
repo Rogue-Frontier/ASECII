@@ -4,6 +4,7 @@ using System.IO;
 using Color = SadRogue.Primitives.Color;
 using SadConsole;
 using SadConsole.UI;
+using System.Diagnostics;
 
 namespace ASECII {
     public class Program {
@@ -19,12 +20,20 @@ namespace ASECII {
             SadConsole.Settings.UseDefaultExtendedFont = true;
             Settings.WindowTitle = "ASECII";
             SadConsole.Game.Create(width, height, "Content/IBMCGA+.font", (args, k) => { });
-            SadConsole.Game.Instance.Started += (a, k) => Init();
+            SadConsole.Game.Instance.Started +=
+                (a, k) => Init(args is [{ } path] ? path.Replace("\"", "") : null);
             SadConsole.Game.Instance.Run();
             SadConsole.Game.Instance.Dispose();
         }
+        private static void Init(string path = null) {
+            if(path != null) {
+                Debug.WriteLine($"Opening {path}");
+                var model = ASECIILoader.DeserializeObject<SpriteModel>(File.ReadAllText(path));
+                model.OnLoad();
+                Game.Instance.Screen = new EditorMain(width, height, model);
+                return;
+            }
 
-        private static void Init() {
             if(LoadState()) {
                 return;
             }
@@ -47,11 +56,11 @@ namespace ASECII {
                 try {
                     var state = ASECIILoader.DeserializeObject<ProgramState>(File.ReadAllText(STATE_FILE));
                     if(state is EditorState e && File.Exists(e.loaded)) {
-                        var sprite = ASECIILoader.DeserializeObject<SpriteModel>(File.ReadAllText(e.loaded));
+                        var model = ASECIILoader.DeserializeObject<SpriteModel>(File.ReadAllText(e.loaded));
 
-                        sprite.OnLoad();
-                        Settings.WindowTitle = $"ASECII: {sprite.filepath}";
-                        Game.Instance.Screen = new EditorMain(width, height, sprite);
+                        model.OnLoad();
+                        Settings.WindowTitle = $"ASECII: {model.filepath}";
+                        Game.Instance.Screen = new EditorMain(width, height, model);
                         return true;
                     
                     }
