@@ -497,23 +497,17 @@ namespace ASECII {
             layerCutButton.UpdateActive();
 
             UpdateChannels();
-
         }
         public void InitUI() {
             InitControls();
-
             historyMenu = new HistoryMenu(16, Height, model);
             historyMenu.UpdateListing();
             model.historyChanged += historyMenu.HistoryChanged;
-
             spriteMenu = new SpriteMenu(Width - controlsMenu.Width, Height, model) {
                 FocusOnMouseClick = true,
                 UseMouse = true
             };
             spriteMenu.OnKeyboard += OnKeyboard;
-
-
-
             void OnKeyboard(Keyboard info) {
                 
                 if (info.IsKeyPressed(Tab)) {
@@ -729,7 +723,6 @@ namespace ASECII {
                                 y += 1;
                                 this.Print(x, y, new ColoredString($"{r.Width,4} {r.Height,4}", f, b));
                             }
-
                             bool GetRectDisplay(out Rectangle r) => model.selectRect.GetAdjustedRect(out r) ||
                                 !((r = model.selection.rects.FirstOrDefault(r => r.Contains(model.cursor))).IsEmpty);
                             bool GetEllipseDisplay(out Ellipse e) => model.selectRect.GetAdjustedEllipse(out e);
@@ -738,11 +731,9 @@ namespace ASECII {
                     case Mode.SelectOutline: {
                             int x = model.cursorScreen.X + 2;
                             int y = model.cursorScreen.Y;
-
                             var f = model.brush.foreground;
                             var b = model.brush.background;
                             this.Print(x, y, new ColoredString($"{model.cursorScreen.X,4} {model.cursorScreen.Y,4}", f, b));
-
                             if (model.ticksSelect % 30 < 15) {
                                 IEnumerable<Point> points = model.selectOutline.outline;
                                 if(points.Any()) {
@@ -761,11 +752,9 @@ namespace ASECII {
                     case Mode.SelectWand: {
                             int x = model.cursorScreen.X + 2;
                             int y = model.cursorScreen.Y;
-
                             var f = model.brush.foreground;
                             var b = model.brush.background;
                             this.Print(x, y, new ColoredString($"{model.cursorScreen.X,4} {model.cursorScreen.Y,4}", f, b));
-
                             if (model.ticksSelect % 30 < 15) {
                                 DrawSelection();
                             }
@@ -774,11 +763,9 @@ namespace ASECII {
                     case Mode.Move:
                         DrawSelection();
                         //Draw offset
-
                         //TO DO: Fix
                         if (model.ticksSelect % 10 < 5 && model.move.current.HasValue) {
                             var offset = model.move.end - model.move.start.Value;
-
                             int x = model.move.start.Value.X - camera.X;
                             int y = model.move.start.Value.Y - camera.Y;
                             bool first = true;
@@ -901,15 +888,11 @@ namespace ASECII {
                         break;
                 }
             }
-            
-            
-
             base.Render(timeElapsed);
             void DrawSelection() => DrawPoints(model.selection.GetAll());
             void DrawSelectionWith(IEnumerable<Point> points) => DrawPoints(model.selection.GetAll().Union(points));
             void DrawPoints(IEnumerable<Point> all) {
                 foreach(var point in all) {
-                    
                     bool n = Contains(new Point(0, -1)), e = Contains(new Point(1, 0)), s = Contains(new Point(0, +1)), w = Contains(new Point(-1, 0)), ne = Contains(new Point(1, -1)), se = Contains(new Point(1, 1)), sw = Contains(new Point(-1, 1)), nw = Contains(new Point(-1, -1));
                     bool Contains(Point offset) => all.Contains(point + offset);
                     var p = point - camera;
@@ -979,8 +962,6 @@ namespace ASECII {
             }
             void DrawRect(Rectangle r) {
                 var (left, top) = (r.X, r.Y);
-
-
                 if (r.Width > 1 && r.Height > 1) {
                     DrawSidesX(Line.Single);
                     DrawSidesY(Line.Single);
@@ -999,7 +980,6 @@ namespace ASECII {
                 } else {
                     DrawBox(left, top, new BoxGlyph { n = Line.Single, e = Line.Single, s = Line.Single, w = Line.Single });
                 }
-
                 void DrawCornerNW() {
                     //Left top
                     DrawBox(left, top, new BoxGlyph { e = Line.Single, s = Line.Single });
@@ -1052,7 +1032,6 @@ namespace ASECII {
                     }
                     if (info.IsKeyPressed(S)) {
                         //File.WriteAllText(Path.Combine(Environment.CurrentDirectory, Path.GetFileName(Path.GetTempFileName())), JsonConvert.SerializeObject(model));
-
                         if (model.filepath == null || info.IsKeyDown(LeftShift)) {
                             var p = Game.Instance.Screen as Console;
                             Game.Instance.Screen = new FileMenu(p.Width, p.Height, new SaveMode(model, this));
@@ -1061,23 +1040,20 @@ namespace ASECII {
                         }
                     }
                 }
-
                 model.ProcessKeyboard(info);
             }
             return base.ProcessKeyboard(info);
         }
         public override bool ProcessMouse(MouseScreenObjectState state) {
             IsFocused = true;
-            var delta = state.Mouse.ScrollWheelValueChange / 120;
+            var delta = state.Mouse.ScrollWheelValueChange;
             if (model.ctrl) {
                 if(delta < 0) {
                     FontSize += new Point(1, 1);
-
                     (int w, int h) = Program.calculate(FontSize.X);
                     Resize(w, h, w, h, false);
                 } else if(delta > 0) {
                     FontSize -= new Point(1, 1);
-
                     (int w, int h) = Program.calculate(FontSize.X);
                     Resize(w, h, w, h, false);
                 }
@@ -1194,7 +1170,7 @@ namespace ASECII {
         public void Save(Console renderer) {
             var fileName = Path.GetDirectoryName(filepath) + "/" + Path.GetFileNameWithoutExtension(filepath);
             File.WriteAllText($"{fileName}.asc", ASECIILoader.SerializeObject(this));
-			File.WriteAllText($"{fileName}.dat", JsonConvert.SerializeObject(sprite.exportData, SFileMode.settings));
+			File.WriteAllText($"{fileName}.dat", ASECIILoader.SerializeObject(sprite.exportData));
 			var preview = sprite.preview;
 			StringBuilder str = new StringBuilder();
             for (int y = sprite.origin.Y; y <= sprite.end.Y; y++) {
