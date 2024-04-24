@@ -11,11 +11,14 @@ namespace ASECII {
         public Point origin;
         public Point end;
         public Dictionary<(int, int), TileValue> preview = new();
+        public Dictionary<(int, int), TileData> exportData = new();
+
+
         public static TileValue empty => new TileValue(Color.Transparent, Color.Transparent, 0);
         public Sprite() {}
         public bool InRect(Point pos) => pos.X >= origin.X && pos.Y >= origin.Y && pos.X <= end.X && pos.Y <= end.Y;
         public void UpdatePreview() {
-            preview = new Dictionary<(int, int), TileValue>();
+            preview.Clear();
             foreach(var layer in layers) {
                 if (!layer.visible) {
                     continue;
@@ -54,6 +57,11 @@ namespace ASECII {
                     var t = tile;
                     modifier?.Invoke(t, current);
                 }
+            }
+
+            exportData.Clear();
+            foreach(var(pos, tile) in preview) {
+                exportData[pos] = tile;
             }
             if (preview.Any()) {
                 origin = new Point(preview.Keys.Min(k => k.Item1), preview.Keys.Min(k => k.Item2));
@@ -386,7 +394,24 @@ namespace ASECII {
             this.Glyph = Glyph;
         }
         public static implicit operator ColoredGlyph(TileValue tv) => new ColoredGlyph(tv.Foreground, tv.Background, tv.Glyph);
+
+        public static implicit operator TileData (TileValue tv) => new() {
+            Background = tv.Background.PackedValue,
+            Foreground = tv.Foreground.PackedValue,
+            Glyph = tv.Glyph
+        };
     }
+    [DataContract]
+    public class TileData {
+        [DataMember]
+        public uint Foreground;
+        [DataMember]
+        public uint Background;
+        [DataMember]
+        public int Glyph;
+
+    }
+
     public class NotepadTile : TileRef {
         public Color Foreground => Color.Black;
         public Color Background => Color.White;

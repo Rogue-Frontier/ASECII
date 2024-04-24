@@ -1192,14 +1192,11 @@ namespace ASECII {
 
         }
         public void Save(Console renderer) {
-            File.WriteAllText($"{filepath}", ASECIILoader.SerializeObject(this));
-
-            var preview = sprite.preview;
-
-            File.WriteAllText($"{filepath}.cg", JsonConvert.SerializeObject(preview, SFileMode.settings));
-
-
-            StringBuilder str = new StringBuilder();
+            var fileName = Path.GetFileNameWithoutExtension(filepath);
+            File.WriteAllText($"{fileName}.asc", ASECIILoader.SerializeObject(this));
+			File.WriteAllText($"{fileName}.dat", JsonConvert.SerializeObject(sprite.exportData, SFileMode.settings));
+			var preview = sprite.preview;
+			StringBuilder str = new StringBuilder();
             for (int y = sprite.origin.Y; y <= sprite.end.Y; y++) {
                 for (int x = sprite.origin.X; x <= sprite.end.X; x++) {
                     if (preview.TryGetValue((x, y), out var tile)) {
@@ -1210,7 +1207,7 @@ namespace ASECII {
                 }
                 str.AppendLine();
             }
-            File.WriteAllText($"{filepath}.txt", str.ToString());
+            //File.WriteAllText($"{fileName}.txt", str.ToString());
             Console c = null;
             if (infinite) {
                 c = new Console(sprite.end.X - sprite.origin.X + 1, sprite.end.Y - sprite.origin.Y + 1);
@@ -1234,7 +1231,7 @@ namespace ASECII {
             }
             c.Render(new TimeSpan());
             var t = (c.Renderer as ScreenSurfaceRenderer)._backingTexture;
-            t.Texture.CopyToImage().SaveToFile($"{filepath}.png");
+            t.Texture.CopyToImage().SaveToFile($"{fileName}.png");
 
             AddAction(new SaveEdit());
         }
