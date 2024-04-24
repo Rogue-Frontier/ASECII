@@ -1192,7 +1192,7 @@ namespace ASECII {
 
         }
         public void Save(Console renderer) {
-            var fileName = Path.GetFileNameWithoutExtension(filepath);
+            var fileName = Path.GetDirectoryName(filepath) + "/" + Path.GetFileNameWithoutExtension(filepath);
             File.WriteAllText($"{fileName}.asc", ASECIILoader.SerializeObject(this));
 			File.WriteAllText($"{fileName}.dat", JsonConvert.SerializeObject(sprite.exportData, SFileMode.settings));
 			var preview = sprite.preview;

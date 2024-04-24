@@ -5,6 +5,8 @@ using Color = SadRogue.Primitives.Color;
 using SadConsole;
 using SadConsole.UI;
 using System.Diagnostics;
+using System;
+using System.Reflection;
 
 namespace ASECII {
     public class Program {
@@ -19,30 +21,32 @@ namespace ASECII {
             //SadConsole.Settings.UnlimitedFPS = true;
             SadConsole.Settings.UseDefaultExtendedFont = true;
             Settings.WindowTitle = "ASECII";
-            SadConsole.Game.Create(width, height, "Content/IBMCGA+.font", (args, k) => { });
+
+            SadConsole.Game.Create(width, height, $"{Path.GetDirectoryName(Assembly.GetEntryAssembly().Location)}/Content/IBMCGA+.font", (args, k) => { });
             SadConsole.Game.Instance.Started +=
                 (a, k) => Init(args is [{ } path] ? path.Replace("\"", "") : null);
             SadConsole.Game.Instance.Run();
             SadConsole.Game.Instance.Dispose();
-        }
+		}
         private static void Init(string path = null) {
-            if(path != null) {
+			if(path != null) {
                 Debug.WriteLine($"Opening {path}");
                 var model = ASECIILoader.DeserializeObject<SpriteModel>(File.ReadAllText(path));
+                if(model.filepath != path) {
+                    model.filepath = path;
+                    model.Save(null);
+                }
                 model.OnLoad();
                 Game.Instance.Screen = new EditorMain(width, height, model);
                 return;
             }
-
             if(LoadState()) {
                 return;
             }
-
             // Create your console
-            var firstConsole = new FileMenu(width, height, new LoadMode());
-
-            SadConsole.Game.Instance.Screen = firstConsole;
-            firstConsole.FocusOnMouseClick = true;
+            var c = new FileMenu(width, height, new LoadMode());
+            SadConsole.Game.Instance.Screen = c;
+            c.FocusOnMouseClick = true;
         }
         public static void SaveState(ProgramState state) {
             if (state != null) {
